@@ -1,11 +1,9 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   X,
   User as UserIcon,
   Home,
-  Calendar,
-  Settings,
   LogOut,
   Info,
   FileText,
@@ -15,11 +13,15 @@ import {
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 
-function MenuItem({ to, icon, children }) {
+function MenuItem({ to, icon, children, onClose }) {
   const navigate = useNavigate();
+  const go = () => {
+    onClose?.();         // 먼저 닫기
+    navigate(to);        // 그 다음 이동
+  };
   return (
     <button
-      onClick={() => navigate(to, { replace: true })}
+      onClick={go}
       className="flex w-full items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-50 text-slate-800 border border-transparent hover:border-slate-100 text-left"
     >
       <span>{icon}</span>
@@ -28,21 +30,37 @@ function MenuItem({ to, icon, children }) {
   );
 }
 
-export default function HamburgerMenu() {
-  const navigate = useNavigate();
+export default function HamburgerMenu({ open, onClose, onOpenProfile, onLogout }) {
   const { user } = useUser();
+  const navigate = useNavigate();
+  const route = useLocation();
 
-  const close = () => navigate(-1);
-
-  // ESC로 닫기
+  // ✅ 훅은 항상 호출! 내부에서 open을 체크
+  // ESC로 닫기 + 바디 스크롤 잠금
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") close(); };
+    if (!open) return;
+    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  // 라우트가 바뀌면 자동 닫기 (열려있을 때만)
+  // useEffect(() => {
+  //   if (!open) return;
+  //   onClose?.();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [route.pathname, open]);
+
+  // ✅ 훅 호출 후에 조건부 렌더
+  if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50" onClick={close}>
+    <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose}>
       <aside
         className="absolute right-0 top-0 h-full w-[86%] max-w-sm bg-white shadow-xl p-5 flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -63,7 +81,7 @@ export default function HamburgerMenu() {
             </div>
           </div>
           <button
-            onClick={close}
+            onClick={onClose}
             className="rounded-xl p-2 hover:bg-slate-100 active:scale-95 transition"
             aria-label="닫기"
           >
@@ -71,35 +89,34 @@ export default function HamburgerMenu() {
           </button>
         </div>
 
-        {/* 기본 메뉴 */}
+        {/* 메뉴 */}
         <nav className="mt-6 grid gap-2">
-          <MenuItem to="/" icon={<Home className="w-5 h-5" />}>홈</MenuItem>
-          <MenuItem to="/profile" icon={<UserIcon className="w-5 h-5" />}>프로필</MenuItem>
-          <MenuItem to="/schedule" icon={<Calendar className="w-5 h-5" />}>내 일정</MenuItem>
+          <MenuItem to="/" icon={<Home className="w-5 h-5" />} onClose={onClose}>홈</MenuItem>
 
-          <MenuItem to="/survey" icon={<FileText className="w-5 h-5" />}>
-            Rumination Scale
-          </MenuItem>
-          <MenuItem to="/mbi-survey" icon={<FileText className="w-5 h-5" />}>
-            MBI
-          </MenuItem>
-          <MenuItem to="/voice-rec" icon={<Mic className="w-5 h-5" />}>
-            목소리 녹음
-          </MenuItem>
-          <MenuItem to="/diary-list" icon={<Pencil className="w-5 h-5" />}>
-            일기쓰기
-          </MenuItem>
-          <MenuItem to="/leaf-ship" icon={<Leaf className="w-5 h-5" />}>
-            나뭇잎 배 띄우기
-          </MenuItem>
+          {/* 프로필 시트(오버레이) 열기 */}
+          <button
+            onClick={() => { onClose?.(); onOpenProfile?.(); }}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-50 text-slate-800 border border-transparent hover:border-slate-100 text-left"
+          >
+            <UserIcon className="w-5 h-5" />
+            <span className="text-sm font-medium">프로필</span>
+          </button>
 
-          <MenuItem to="/settings" icon={<Settings className="w-5 h-5" />}>설정</MenuItem>
-          <MenuItem to="/about" icon={<Info className="w-5 h-5" />}>앱 소개</MenuItem>
+          <MenuItem to="/hub" icon={<Info className="w-5 h-5" />} onClose={onClose}>허브</MenuItem>
+          <MenuItem to="/survey" icon={<FileText className="w-5 h-5" />} onClose={onClose}>Rumination Scale</MenuItem>
+          <MenuItem to="/mbi-survey" icon={<FileText className="w-5 h-5" />} onClose={onClose}>MBI 설문</MenuItem>
+          <MenuItem to="/voice-rec" icon={<Mic className="w-5 h-5" />} onClose={onClose}>목소리 녹음</MenuItem>
+          <MenuItem to="/diary" icon={<Pencil className="w-5 h-5" />} onClose={onClose}>일기 쓰기 (작성)</MenuItem>
+          <MenuItem to="/diary-list" icon={<Pencil className="w-5 h-5" />} onClose={onClose}>일기 목록</MenuItem>
+          <MenuItem to="/leaf-ship" icon={<Leaf className="w-5 h-5" />} onClose={onClose}>나뭇잎 배 띄우기</MenuItem>
         </nav>
 
         {/* 하단 */}
         <div className="mt-auto pt-4 border-t border-slate-100">
-          <button className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 bg-slate-50 hover:bg-slate-100 text-slate-700">
+          <button
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 bg-slate-50 hover:bg-slate-100 text-slate-700"
+            onClick={() => { onClose?.(); onLogout?.(); }}
+          >
             <LogOut className="w-5 h-5" /> 로그아웃
           </button>
           <p className="mt-3 text-center text-xs text-slate-400">v1.0.0</p>

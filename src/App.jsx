@@ -1,6 +1,5 @@
-// src/App.jsx
 import React, { useState, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Calendar as CalendarIcon, User, CheckCircle2, Music2, Mic, Leaf, Pencil, Gift, FileText, Plus,
@@ -106,10 +105,10 @@ const loadLS = () => {
 const cn = (...a) => a.filter(Boolean).join(" ");
 
 /* ========== Toolbar (UserMenuButton 사용) ========== */
-function Toolbar({ clientMode, setClientMode, role, setRole, openWeekSetup, onOpenMenu }) {
+function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onOpenMenu }) {
   const [copied, setCopied] = useState(false);
   const copyShare = async () => {
-    const url = `${location.origin + location.pathname}#client`;
+    const url = `${window.location.origin + window.location.pathname}#client`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
@@ -137,13 +136,11 @@ function Toolbar({ clientMode, setClientMode, role, setRole, openWeekSetup, onOp
         {role === "counselor" && (
           <Button variant="outline" onClick={openWeekSetup}>새 프로그램</Button>
         )}
-        {role ? (
-          <>
-            <Button variant="ghost" onClick={() => setRole(null)}><LogOut size={16}/> 로그아웃</Button>
-            {/* 메뉴 버튼을 분리 컴포넌트로 사용 */}
-            <UserMenuButton onClick={onOpenMenu} />
-          </>
-        ) : null}
+        {/* 메뉴 버튼은 항상 보이게! */}
+        <UserMenuButton onClick={onOpenMenu} />
+        {role && (
+          <Button variant="ghost" onClick={onLogout}><LogOut size={16}/> 로그아웃</Button>
+        )}
       </div>
     </div>
   );
@@ -469,22 +466,42 @@ function WeekSetup({ initialWeeks = 4, onConfirm, onCancel }) {
 /* ========== AppHome: 기존 빌더 화면 ========== */
 function AppHome() {
   const [program, setProgram] = useState(() => loadLS() || emptyProgram());
-  const [clientMode, setClientMode] = useState(() => location.hash === "#client");
-  const [role, setRole] = useState(() => (location.hash === "#client" ? "client" : null));
+  const [clientMode, setClientMode] = useState(() => window.location.hash === "#client");
+  const [role, setRole] = useState(() => (window.location.hash === "#client" ? "client" : null));
   const [showWeekSetup, setShowWeekSetup] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const route = useLocation();
 
   useEffect(() => saveLS(program), [program]);
+
   useEffect(() => {
     const onHash = () => {
-      const isClient = location.hash === "#client";
+      const isClient = window.location.hash === "#client";
       setClientMode(isClient);
       if (isClient) setRole("client");
     };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
+
+  // 라우트가 바뀌면 메뉴/프로필 닫기
+  useEffect(() => {
+    if (showMenu) setShowMenu(false);
+    if (showProfile) setShowProfile(false);
+  }, [route.pathname]);
+
+  // 역할이 바뀌면 메뉴/프로필 닫기
+  useEffect(() => {
+    if (showMenu) setShowMenu(false);
+    if (showProfile) setShowProfile(false);
+  }, [role]);
+
+  const onLogout = () => {
+    setRole(null);
+    setShowMenu(false);
+    setShowProfile(false);
+  };
 
   const generateWeeks = (n) => {
     const weeks = Array.from({ length: n }).map((_, idx) => ({ weekLabel: `${idx + 1}주차`, dateTag: null, items: [] }));
@@ -505,6 +522,8 @@ function AppHome() {
             if (r === "client") setClientMode(true);
             if (r === "counselor") setClientMode(false);
             if (r === "counselor" && program.weeks.length === 0) setShowWeekSetup(true);
+            setShowMenu(false);
+            setShowProfile(false);
           }}
         />
       </>
@@ -516,7 +535,7 @@ function AppHome() {
         clientMode={clientMode}
         setClientMode={setClientMode}
         role={role}
-        setRole={setRole}
+        onLogout={onLogout}
         openWeekSetup={openWeekSetup}
         onOpenMenu={() => setShowMenu(true)}
       />
@@ -558,8 +577,13 @@ function AppHome() {
         <WeekSetup initialWeeks={Math.max(1, program.weeks.length || 4)} onConfirm={onConfirmWeeks} onCancel={() => setShowWeekSetup(false)} />
       )}
 
-      {/* 분리된 컴포넌트 사용 */}
-      <HamburgerMenu open={showMenu} onClose={() => setShowMenu(false)} onOpenProfile={() => setShowProfile(true)} />
+      {/* 메뉴 버튼은 Toolbar에서만 사용 */}
+      <HamburgerMenu
+        open={showMenu}
+        onClose={() => setShowMenu(false)}
+        onOpenProfile={() => setShowProfile(true)}
+        onLogout={onLogout}
+      />
       <ProfileSheet open={showProfile} onClose={() => setShowProfile(false)} />
     </div>
   );
