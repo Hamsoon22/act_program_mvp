@@ -1,5 +1,6 @@
+// src/App.jsx
 import React, { useState, useEffect } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Calendar as CalendarIcon, User, CheckCircle2, Music2, Mic, Leaf, Pencil, Gift, FileText, Plus,
@@ -14,7 +15,7 @@ import UserMenuButton from "./components/UserMenuButton";
 import HamburgerMenu from "./components/HamburgerMenu";
 import ProfileSheet from "./components/ProfileSheet";
 
-// (허브/기능 페이지들) — 이미 있는 페이지 컴포넌트라 가정
+// (허브/기능 페이지들)
 import MainHub from "./MainHub";
 import RuminationSurvey from "./RuminationSurvey";
 import ResultPage from "./ResultPage";
@@ -62,18 +63,30 @@ const CardContent = ({ className = "", children }) => (
 const ICONS = {
   check: { label: "체크", Icon: CheckCircle2 },
   music: { label: "음악", Icon: Music2 },
-  mic: { label: "녹음", Icon: Mic },
-  leaf: { label: "나뭇잎", Icon: Leaf },
-  pencil: { label: "연필", Icon: Pencil },
-  gift: { label: "기념", Icon: Gift },
-  file: { label: "문서", Icon: FileText },
+  mic:   { label: "녹음", Icon: Mic },
+  leaf:  { label: "나뭇잎", Icon: Leaf },
+  pencil:{ label: "연필", Icon: Pencil },
+  gift:  { label: "기념", Icon: Gift },
+  file:  { label: "문서", Icon: FileText },
 };
+
+// 기존 타입 유지 + feature 추가
 const TYPES = [
   { value: "assessment", label: "진단/설문" },
-  { value: "practice", label: "연습/활동" },
-  { value: "content", label: "콘텐츠" },
-  { value: "milestone", label: "마일스톤" },
+  { value: "practice",   label: "연습/활동" },
+  { value: "content",    label: "콘텐츠" },
+  { value: "milestone",  label: "마일스톤" },
+  { value: "feature",    label: "앱 기능" }, // 추가
 ];
+
+// 앱 기능 라우트 매핑
+const FEATURES = {
+  survey: { label: "Rumination Scale", path: "/survey" },
+  mbi:    { label: "MBI 설문",         path: "/mbi-survey" },
+  voice:  { label: "목소리 녹음",       path: "/voice-rec" },
+  diary:  { label: "일기 쓰기",         path: "/diary" },
+  leaf:   { label: "나뭇잎 배 띄우기",   path: "/leaf-ship" },
+};
 
 function emptyProgram() {
   return { title: "ACT Program", dateStart: null, dateEnd: null, coach: "", weeks: [] };
@@ -102,14 +115,17 @@ const loadLS = () => {
   }
 };
 
+const ROLE_LS = "act-role";
+const MODE_LS = "act-clientmode";
+
 const cn = (...a) => a.filter(Boolean).join(" ");
 
-/* ========== Toolbar (UserMenuButton 사용) ========== */
+/* ========== Toolbar ========== */
 function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onOpenMenu }) {
   const [copied, setCopied] = useState(false);
   const copyShare = async () => {
-    const url = `${window.location.origin + window.location.pathname}#client`;
-    await navigator.clipboard.writeText(url);
+    // 현재 보기를 복사 (HashRouter 사용 시에도 안전)
+    await navigator.clipboard.writeText(window.location.href);
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
   };
@@ -130,13 +146,12 @@ function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onO
         {role === "counselor" && (
           <Button variant="outline" onClick={copyShare}>
             <LinkIcon size={16} />
-            {copied ? "링크 복사됨!" : "링크 공유하기"}
+            {copied ? "링크 복사됨!" : "링크 복사"}
           </Button>
         )}
         {role === "counselor" && (
           <Button variant="outline" onClick={openWeekSetup}>새 프로그램</Button>
         )}
-        {/* 메뉴 버튼은 항상 보이게! */}
         <UserMenuButton onClick={onOpenMenu} />
         {role && (
           <Button variant="ghost" onClick={onLogout}><LogOut size={16}/> 로그아웃</Button>
@@ -254,10 +269,14 @@ function VideoModal({ url, onClose }) {
     </div>
   );
 }
+
 function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEditModeChange, idx, weekIdx }) {
+  const navigate = useNavigate();
   const Icon = ICONS[item.icon]?.Icon ?? FileText;
   const [open, setOpen] = useState(false);
   const isDiary = item.type === "practice";
+  const isFeature = item.type === "feature";
+  const selectedFeature = isFeature ? FEATURES[item.featureKey] : null;
   const diaryKey = `diary-week-${weekIdx}-item-${idx}`;
   const [diary, setDiary] = useState("");
   const [openDiary, setOpenDiary] = useState(false);
@@ -266,11 +285,36 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
   useEffect(() => { setDiary(localStorage.getItem(diaryKey) || ""); }, [diaryKey]);
   const hasVideo = Boolean(item.videoUrl);
 
+  // 기능 변경 시 자동 제목: 사용자가 직접 수정하지 않았다면(autoTitle)
+  useEffect(() => {
+    if (!isFeature) return;
+    if (!item.featureKey) {
+      onChange({ featureKey: "survey", title: FEATURES.survey.label, autoTitle: true });
+      return;
+    }
+    if (item.autoTitle && selectedFeature) {
+      onChange({ title: selectedFeature.label });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFeature, item.featureKey, item.autoTitle]);
+
   function saveDiary() {
     localStorage.setItem(diaryKey, diary);
     setDiarySaved(true);
     setTimeout(() => setDiarySaved(false), 1200);
   }
+
+  const FeatureOpenButton = () => (
+    isFeature && selectedFeature ? (
+      <Button
+        variant="outline"
+        className="h-7 rounded-xl px-2 py-1 text-xs"
+        onClick={() => navigate(selectedFeature.path)}
+      >
+        열기
+      </Button>
+    ) : null
+  );
 
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-gray-200 p-3">
@@ -285,6 +329,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
                   <Play size={14}/> 보기
                 </Button>
               )}
+              <FeatureOpenButton />
             </div>
             <div className="text-xs text-gray-500">{item.subtitle}</div>
             {item.type === "assessment" && item.link && (
@@ -316,14 +361,52 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
           <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
             <div className="md:col-span-2">
               <Label>제목</Label>
-              <Input value={item.title} onChange={(e) => onChange({ title: e.target.value })} />
+              <Input value={item.title} onChange={(e) => onChange({ title: e.target.value, autoTitle: false })} />
             </div>
             <div>
               <Label>종류</Label>
-              <select className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" value={item.type} onChange={(e) => onChange({ type: e.target.value })}>
+              <select
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                value={item.type}
+                onChange={(e) => {
+                  const nextType = e.target.value;
+                  if (nextType === "feature") {
+                    const needsKey = !item.featureKey;
+                    const needsTitle = !item.title;
+                    onChange({
+                      type: nextType,
+                      ...(needsKey ? { featureKey: "survey" } : null),
+                      ...(needsTitle ? { title: FEATURES.survey.label, autoTitle: true } : null),
+                    });
+                  } else {
+                    onChange({ type: nextType });
+                  }
+                }}
+              >
                 {TYPES.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}
               </select>
             </div>
+
+            {isFeature && (
+              <div className="md:col-span-3">
+                <Label>연결할 앱 기능</Label>
+                <select
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                  value={item.featureKey || "survey"}
+                  onChange={(e) => onChange({ featureKey: e.target.value })}
+                >
+                  {Object.entries(FEATURES).map(([key, f]) => (
+                    <option key={key} value={key}>{f.label} ({f.path})</option>
+                  ))}
+                </select>
+                {selectedFeature && (
+                  <div className="mt-1 text-xs text-gray-500">
+                    선택됨: {selectedFeature.label} → <code>{selectedFeature.path}</code>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="md:col-span-2">
               <Label>부제 / 설명</Label>
               <Input value={item.subtitle} onChange={(e) => onChange({ subtitle: e.target.value })} />
@@ -334,6 +417,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
                 {Object.entries(ICONS).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}
               </select>
             </div>
+
             {item.type === "assessment" && (
               <div className="md:col-span-3">
                 <Label>진단/설문 링크</Label>
@@ -356,6 +440,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
                   <Play size={14}/> 보기
                 </Button>
               )}
+              <FeatureOpenButton />
             </div>
             <div className="text-xs text-gray-500">{item.subtitle}</div>
             {item.type === "assessment" && item.link && (
@@ -376,10 +461,21 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
     </div>
   );
 }
+
 function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx }) {
   const [editItemIdx, setEditItemIdx] = useState(null);
   const addItem = () => {
-    const newItem = { icon: "file", title: "새 항목", subtitle: "설명", type: "content", done: false, videoUrl: "" };
+    // 기본을 feature 아이템으로 생성 + 자동 제목
+    const newItem = {
+      icon: "file",
+      type: "feature",
+      featureKey: "survey",
+      title: FEATURES.survey.label,
+      autoTitle: true,
+      subtitle: "설명",
+      done: false,
+      videoUrl: ""
+    };
     const newItems = [...week.items, newItem];
     onChange({ ...week, items: newItems });
     setEditItemIdx(newItems.length - 1);
@@ -463,11 +559,18 @@ function WeekSetup({ initialWeeks = 4, onConfirm, onCancel }) {
   );
 }
 
-/* ========== AppHome: 기존 빌더 화면 ========== */
+/* ========== AppHome: 메인 프로그램 화면 ========== */
 function AppHome() {
   const [program, setProgram] = useState(() => loadLS() || emptyProgram());
-  const [clientMode, setClientMode] = useState(() => window.location.hash === "#client");
-  const [role, setRole] = useState(() => (window.location.hash === "#client" ? "client" : null));
+  // 해시(#client) 의존 제거 — 사용자/상담사 모두 LS로 역할/모드 보존
+  const [role, setRole] = useState(() => localStorage.getItem(ROLE_LS) || null);
+  const [clientMode, setClientMode] = useState(() => {
+    const saved = localStorage.getItem(MODE_LS);
+    if (saved === "1") return true;
+    if (saved === "0") return false;
+    return (localStorage.getItem(ROLE_LS) === "client");
+  });
+
   const [showWeekSetup, setShowWeekSetup] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -475,17 +578,16 @@ function AppHome() {
 
   useEffect(() => saveLS(program), [program]);
 
+  // 역할/모드 영구 저장 (뒤로가기/새로고침 시 유지)
   useEffect(() => {
-    const onHash = () => {
-      const isClient = window.location.hash === "#client";
-      setClientMode(isClient);
-      if (isClient) setRole("client");
-    };
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
-  }, []);
+    if (role) localStorage.setItem(ROLE_LS, role);
+    else localStorage.removeItem(ROLE_LS);
+  }, [role]);
+  useEffect(() => {
+    localStorage.setItem(MODE_LS, clientMode ? "1" : "0");
+  }, [clientMode]);
 
-  // 라우트가 바뀌면 메뉴/프로필 닫기
+  // 라우트 바뀌면 메뉴/프로필 닫기
   useEffect(() => {
     if (showMenu) setShowMenu(false);
     if (showProfile) setShowProfile(false);
@@ -501,6 +603,8 @@ function AppHome() {
     setRole(null);
     setShowMenu(false);
     setShowProfile(false);
+    localStorage.removeItem(ROLE_LS);
+    localStorage.removeItem(MODE_LS);
   };
 
   const generateWeeks = (n) => {
@@ -519,8 +623,7 @@ function AppHome() {
         <Landing
           onChooseRole={(r) => {
             setRole(r);
-            if (r === "client") setClientMode(true);
-            if (r === "counselor") setClientMode(false);
+            setClientMode(r === "client");
             if (r === "counselor" && program.weeks.length === 0) setShowWeekSetup(true);
             setShowMenu(false);
             setShowProfile(false);
@@ -570,14 +673,13 @@ function AppHome() {
       </div>
 
       <footer className="py-10 text-center text-xs text-gray-400">
-        역할: {role === "counselor" ? "상담사" : "내담자"} • 로컬 저장됨 • #client 해시로 클라이언트 모드 공유
+        역할: {role === "counselor" ? "상담사" : "내담자"} • 로컬 저장됨
       </footer>
 
       {showWeekSetup && (
         <WeekSetup initialWeeks={Math.max(1, program.weeks.length || 4)} onConfirm={onConfirmWeeks} onCancel={() => setShowWeekSetup(false)} />
       )}
 
-      {/* 메뉴 버튼은 Toolbar에서만 사용 */}
       <HamburgerMenu
         open={showMenu}
         onClose={() => setShowMenu(false)}
@@ -594,7 +696,7 @@ export default function App() {
   return (
     <UserProvider>
       <Routes>
-        {/* 빌더/클라이언트 홈 */}
+        {/* 메인 프로그램 */}
         <Route path="/" element={<AppHome />} />
         {/* 허브 및 기능 페이지들 */}
         <Route path="/hub" element={<MainHub />} />
