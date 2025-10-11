@@ -9,17 +9,13 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HeaderEditable from "./components/HeaderEditable";
-
-// [API 연동]
 import { api } from "./lib/api";
 
-// 외부 컴포넌트/컨텍스트
 import { UserProvider } from "./context/UserContext";
 import UserMenuButton from "./components/UserMenuButton";
 import HamburgerMenu from "./components/HamburgerMenu";
 import ProfileSheet from "./components/ProfileSheet";
 
-// (허브/기능 페이지들)
 import LoginPage from "./LoginPage";
 import MainHub from "./MainHub";
 import RuminationSurvey from "./RuminationSurvey";
@@ -37,7 +33,7 @@ import LeafShip from "./LeafShip";
 const Button = ({ className = "", variant = "default", ...props }) => (
   <button
     className={
-      `inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm shadow-sm transition active:scale-[.99] ` +
+      `inline-flex items-center gap-2 rounded-xl px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base shadow-sm transition active:scale-[.99] ` +
       (variant === "outline"
         ? "border border-gray-300 bg-white hover:bg-gray-50"
         : variant === "ghost"
@@ -50,18 +46,18 @@ const Button = ({ className = "", variant = "default", ...props }) => (
 );
 const Input = (props) => (
   <input
-    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-400"
+    className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm sm:text-base outline-none focus:ring-2 focus:ring-sky-400"
     {...props}
   />
 );
 const Label = ({ children, className = "" }) => (
-  <label className={"text-xs text-gray-600 " + className}>{children}</label>
+  <label className={"text-xs sm:text-sm text-gray-600 " + className}>{children}</label>
 );
 const Card = ({ className = "", children }) => (
-  <div className={"rounded-2xl border border-gray-200 bg-white shadow-sm " + className}>{children}</div>
+  <div className={"rounded-xl sm:rounded-2xl border border-gray-200 bg-white shadow-sm " + className}>{children}</div>
 );
 const CardContent = ({ className = "", children }) => (
-  <div className={"p-4 " + className}>{children}</div>
+  <div className={"p-3 sm:p-4 md:p-6 " + className}>{children}</div>
 );
 
 const ICONS = {
@@ -91,8 +87,6 @@ const FEATURES = {
 function emptyProgram() {
   return { title: "ACT Program", dateStart: null, dateEnd: null, coach: "", weeks: [] };
 }
-
-// LocalStorage helpers
 const STORAGE_KEY = "act-program-builder-mvp";
 const saveLS = (data) => {
   const replacer = (key, value) => (value instanceof Date ? value.toISOString() : value);
@@ -119,7 +113,7 @@ const ROLE_LS = "act-role";
 const MODE_LS = "act-clientmode";
 const cn = (...a) => a.filter(Boolean).join(" ");
 
-// [날짜 포맷] YYYY.MM.DD
+// 날짜를 YYYY.MM.DD로 변환
 function formatDateToYYYYMMDD(date) {
   if (!date) return "";
   const year = date.getFullYear();
@@ -138,30 +132,40 @@ function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onO
   };
 
   return (
-    <div className="sticky top-0 z-50 -mx-4 mb-4 flex items-center justify-between rounded-2xl bg-white/80 p-4 backdrop-blur">
-      <div className="flex items-center gap-2">
+    <div className="sticky top-0 z-50 -mx-2 sm:-mx-4 mb-3 sm:mb-4 flex items-center justify-between rounded-xl sm:rounded-2xl bg-white/80 p-3 sm:p-4 backdrop-blur">
+      <div className="flex items-center gap-2 sm:gap-4">
         {role === "counselor" && (
           <Button onClick={() => setClientMode((v) => !v)} variant="outline" className="rounded-full">
-            {clientMode ? <EyeOff size={16} /> : <Eye size={16} />} {clientMode ? "빌더 보기" : "클라이언트 보기"}
+            {clientMode ? <EyeOff size={16} /> : <Eye size={16} />}
+            <span className="hidden sm:inline">{clientMode ? "빌더 보기" : "클라이언트 보기"}</span>
           </Button>
         )}
         {role === "counselor" && (
-          <Button variant="outline" onClick={openWeekSetup}>주차 설정</Button>
+          <Button variant="outline" onClick={openWeekSetup}>
+            <CalendarIcon size={16} />
+            <span className="hidden sm:inline">주차 설정</span>
+          </Button>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 sm:gap-4">
         {role === "counselor" && (
           <>
             <Button variant="outline" onClick={copyShare}>
               <LinkIcon size={16} />
-              {copied ? "링크 복사됨!" : "링크 복사"}
+              <span className="hidden sm:inline">{copied ? "링크 복사됨!" : "링크 복사"}</span>
             </Button>
-            <Button variant="outline" onClick={openWeekSetup}>새 프로그램</Button>
+            <Button variant="outline" onClick={openWeekSetup}>
+              <Plus size={16} />
+              <span className="hidden sm:inline">새 프로그램</span>
+            </Button>
           </>
         )}
         <UserMenuButton onClick={onOpenMenu} />
         {role && (
-          <Button variant="ghost" onClick={onLogout}><LogOut size={16}/> 로그아웃</Button>
+          <Button variant="ghost" onClick={onLogout}>
+            <LogOut size={16}/>
+            <span className="hidden sm:inline">로그아웃</span>
+          </Button>
         )}
       </div>
     </div>
@@ -205,48 +209,50 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
     isFeature && selectedFeature ? (
       <Button
         variant="outline"
-        className="h-7 rounded-xl px-2 py-1 text-xs"
+        className="h-7 rounded-xl px-2 py-1 text-xs sm:text-sm"
         onClick={() => navigate(selectedFeature.path)}
       >
-        열기
+        <CalendarIcon size={14} />
+        <span className="hidden sm:inline">열기</span>
       </Button>
     ) : null
   );
 
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-gray-200 p-3">
+    <div className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-gray-200 p-3 sm:p-4">
       <div className={cn("grid h-10 w-10 place-items-center rounded-xl", item.done ? "bg-green-50" : "bg-orange-50")}><Icon /></div>
       <div className="flex-1">
         {clientMode ? (
           <>
-            <div className="flex items-center gap-3">
-              <div className="text-sm font-medium">{item.title}</div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="text-sm sm:text-base font-medium">{item.title}</div>
               {hasVideo && (
-                <Button variant="outline" className="h-7 rounded-xl px-2 py-1 text-xs" onClick={() => setOpen(true)}>
-                  <Play size={14}/> 보기
+                <Button variant="outline" className="h-7 rounded-xl px-2 py-1 text-xs sm:text-sm" onClick={() => setOpen(true)}>
+                  <Play size={14}/> <span className="hidden sm:inline">보기</span>
                 </Button>
               )}
               <FeatureOpenButton />
             </div>
-            <div className="text-xs text-gray-500">{item.subtitle}</div>
+            <div className="text-xs sm:text-sm text-gray-500">{item.subtitle}</div>
             {item.type === "assessment" && item.link && (
               <a href={item.link} className="inline-block mt-2 text-sky-600 underline" target="_blank" rel="noopener noreferrer">진단하기 바로가기</a>
             )}
             {isDiary && (
               <div className="mt-3">
                 <Button variant="outline" className="mb-2" onClick={() => setOpenDiary(v => !v)}>
-                  {openDiary ? "입력창 닫기" : "활동 기록하기"}
+                  <Pencil size={16} />
+                  <span className="hidden sm:inline">{openDiary ? "입력창 닫기" : "활동 기록하기"}</span>
                 </Button>
                 {openDiary && (
                   <div>
                     <Label>나의 기록</Label>
-                    <textarea className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-400" rows={6} value={diary} onChange={e => setDiary(e.target.value)} placeholder="오늘의 활동 내용을 자유롭게 써보세요." />
-                    <Button className="mt-2" onClick={saveDiary}><Save size={16} /> 저장하기</Button>
-                    {diarySaved && (<span className="ml-3 text-xs text-green-500">저장되었습니다!</span>)}
+                    <textarea className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm sm:text-base outline-none focus:ring-2 focus:ring-sky-400" rows={6} value={diary} onChange={e => setDiary(e.target.value)} placeholder="오늘의 활동 내용을 자유롭게 써보세요." />
+                    <Button className="mt-2" onClick={saveDiary}><Save size={16} /> <span className="hidden sm:inline">저장하기</span></Button>
+                    {diarySaved && (<span className="ml-3 text-xs sm:text-sm text-green-500">저장되었습니다!</span>)}
                   </div>
                 )}
                 {diary && !openDiary && (
-                  <div className="mt-2 bg-gray-50 rounded-xl p-2 text-sm text-gray-700">
+                  <div className="mt-2 bg-gray-50 rounded-xl p-2 text-sm sm:text-base text-gray-700">
                     <b>나의 기록:</b>
                     <div className="mt-1 whitespace-pre-line">{diary}</div>
                   </div>
@@ -255,7 +261,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
             )}
           </>
         ) : editMode && role === "counselor" ? (
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-3">
             <div className="md:col-span-2">
               <Label>제목</Label>
               <Input value={item.title} onChange={(e) => onChange({ title: e.target.value, autoTitle: false })} />
@@ -263,7 +269,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
             <div>
               <Label>종류</Label>
               <select
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm sm:text-base"
                 value={item.type}
                 onChange={(e) => {
                   const nextType = e.target.value;
@@ -287,7 +293,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
               <div className="md:col-span-3">
                 <Label>연결할 앱 기능</Label>
                 <select
-                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm sm:text-base"
                   value={item.featureKey || "survey"}
                   onChange={(e) => onChange({ featureKey: e.target.value })}
                 >
@@ -296,7 +302,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
                   ))}
                 </select>
                 {selectedFeature && (
-                  <div className="mt-1 text-xs text-gray-500">
+                  <div className="mt-1 text-xs sm:text-sm text-gray-500">
                     선택됨: {selectedFeature.label} → <code>{selectedFeature.path}</code>
                   </div>
                 )}
@@ -308,7 +314,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
             </div>
             <div>
               <Label>아이콘</Label>
-              <select className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" value={item.icon} onChange={(e) => onChange({ icon: e.target.value })}>
+              <select className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm sm:text-base" value={item.icon} onChange={(e) => onChange({ icon: e.target.value })}>
                 {Object.entries(ICONS).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}
               </select>
             </div>
@@ -327,16 +333,16 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-3">
-              <div className="text-sm font-medium">{item.title}</div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="text-sm sm:text-base font-medium">{item.title}</div>
               {hasVideo && (
-                <Button variant="outline" className="h-7 rounded-xl px-2 py-1 text-xs" onClick={() => setOpen(true)}>
-                  <Play size={14}/> 보기
+                <Button variant="outline" className="h-7 rounded-xl px-2 py-1 text-xs sm:text-sm" onClick={() => setOpen(true)}>
+                  <Play size={14}/> <span className="hidden sm:inline">보기</span>
                 </Button>
               )}
               <FeatureOpenButton />
             </div>
-            <div className="text-xs text-gray-500">{item.subtitle}</div>
+            <div className="text-xs sm:text-sm text-gray-500">{item.subtitle}</div>
             {item.type === "assessment" && item.link && (
               <a href={item.link} className="inline-block mt-2 text-sky-600 underline" target="_blank" rel="noopener noreferrer">진단하기 바로가기</a>
             )}
@@ -344,11 +350,12 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
         )}
       </div>
       {!clientMode && role === "counselor" && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Button variant="outline" onClick={() => { onEditModeChange(editMode ? false : true); }}>
-            {editMode ? <Save size={16} /> : <Pencil size={16} />}{editMode ? "저장" : "수정"}
+            {editMode ? <Save size={16} /> : <Pencil size={16} />}
+            <span className="hidden sm:inline">{editMode ? "저장" : "수정"}</span>
           </Button>
-          <Button variant="ghost" onClick={onRemove}><Trash2 size={16}/></Button>
+          <Button variant="ghost" onClick={onRemove}><Trash2 size={16}/><span className="hidden sm:inline">삭제</span></Button>
         </div>
       )}
       {clientMode && hasVideo && open && (<VideoModal url={item.videoUrl} onClose={() => setOpen(false)} />)}
@@ -357,25 +364,23 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
 }
 
 // ----- WeekEditor -----
-function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, programMasterId }) {
+function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, programMasterId, reloadWeeks }) {
   const [editItemIdx, setEditItemIdx] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  // [API 연동] 프로그램 주차(week) 추가
   const handleAddWeekToDB = async () => {
     setErr("");
     setLoading(true);
     try {
-      const dateStr = formatDateToYYYYMMDD(week.dateTag); // [날짜 포맷] 적용!
-      const resp = await api.createProgramWeek({
+      const dateStr = formatDateToYYYYMMDD(week.dateTag);
+      await api.createProgramWeek({
         programMasterId,
         programWeekName: week.weekLabel,
         programWeekDate: dateStr,
       });
-      alert("주차(DB) 저장 성공! (id: " + resp.id + ")");
-      // 필요시 resp.id를 상태에 반영
-      onChange({ ...week, id: resp.id }); // DB id 저장
+      alert("주차(DB) 저장 성공!");
+      if (reloadWeeks) reloadWeeks();
     } catch (e) {
       setErr(e.message || "주차 저장 실패");
     } finally {
@@ -383,7 +388,6 @@ function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, progr
     }
   };
 
-  // [API 연동] 프로그램 주차(week) 수정
   const handleUpdateWeekToDB = async () => {
     setErr("");
     setLoading(true);
@@ -400,6 +404,7 @@ function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, progr
         programWeekDate: dateStr,
       });
       alert("주차(DB) 수정 성공!");
+      if (reloadWeeks) reloadWeeks();
     } catch (e) {
       setErr(e.message || "주차 수정 실패");
     } finally {
@@ -407,7 +412,6 @@ function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, progr
     }
   };
 
-  // [API 연동] 프로그램 주차(week) 삭제
   const handleDeleteWeekFromDB = async () => {
     setErr("");
     setLoading(true);
@@ -419,7 +423,7 @@ function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, progr
       }
       await api.deleteProgramWeek(week.id);
       alert("주차(DB) 삭제 성공!");
-      if (onRemove) onRemove();
+      if (reloadWeeks) reloadWeeks();
     } catch (e) {
       setErr(e.message || "주차 삭제 실패");
     } finally {
@@ -454,34 +458,34 @@ function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, progr
     setEditItemIdx(null);
   };
   return (
-    <Card className="mb-4">
+    <Card className="mb-3 sm:mb-4">
       <CardContent>
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="mb-2 sm:mb-3 flex items-center justify-between flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3">
             {clientMode ? (
               <>
-                <span className="rounded-full bg-gray-900 px-3 py-1 text-xs font-medium text-white">{week.weekLabel || "주차"}</span>
-                {week.dateTag && (<span className="ml-2 text-xs text-gray-600">{week.dateTag instanceof Date ? week.dateTag.toLocaleDateString() : ""}</span>)}
+                <span className="rounded-full bg-gray-900 px-3 py-1 text-xs sm:text-sm font-medium text-white">{week.weekLabel || "주차"}</span>
+                {week.dateTag && (<span className="ml-2 text-xs sm:text-sm text-gray-600">{week.dateTag instanceof Date ? week.dateTag.toLocaleDateString() : ""}</span>)}
               </>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Input className="w-24" value={week.weekLabel} onChange={(e) => onChange({ ...week, weekLabel: e.target.value })} placeholder="1주차" disabled={role !== "counselor"} />
-                <DatePicker selected={week.dateTag} onChange={(date) => onChange({ ...week, dateTag: date })} dateFormat="yyyy.MM.dd" placeholderText="날짜" className="w-36 rounded-xl border px-2 py-1 text-sm" disabled={role !== "counselor"} />
+                <DatePicker selected={week.dateTag} onChange={(date) => onChange({ ...week, dateTag: date })} dateFormat="yyyy.MM.dd" placeholderText="날짜" className="w-36 rounded-xl border px-2 py-1 text-sm sm:text-base" disabled={role !== "counselor"} />
               </div>
             )}
           </div>
           {role === "counselor" && (
             <>
               <Button variant="ghost" onClick={onRemove}>
-                <Trash2 size={16} /> 삭제(프론트)
+                <Trash2 size={16} /><span className="hidden sm:inline">삭제(프론트)</span>
               </Button>
               <Button variant="outline" color="red" onClick={handleDeleteWeekFromDB} disabled={loading}>
-                DB 삭제
+                <Trash2 size={16} /><span className="hidden sm:inline">DB 삭제</span>
               </Button>
             </>
           )}
         </div>
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {week.items.map((item, idx) => (
             <ProgramItemCard
               key={idx}
@@ -498,15 +502,15 @@ function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, progr
           ))}
         </div>
         {!clientMode && role === "counselor" && (
-          <div className="mt-4 flex gap-2 flex-wrap">
-            <Button onClick={addItem}><Plus size={16} /> 프로그램 추가(프론트)</Button>
+          <div className="mt-3 sm:mt-4 flex gap-2 sm:gap-4 flex-wrap">
+            <Button onClick={addItem}><Plus size={16} /><span className="hidden sm:inline">프로그램 추가(프론트)</span></Button>
             <Button onClick={handleAddWeekToDB} disabled={loading}>
-              {loading ? "저장 중..." : "DB 저장"}
+              <Save size={16} /><span className="hidden sm:inline">{loading ? "저장 중..." : "DB 저장"}</span>
             </Button>
             <Button onClick={handleUpdateWeekToDB} disabled={loading}>
-              {loading ? "수정 중..." : "DB 수정"}
+              <Pencil size={16} /><span className="hidden sm:inline">{loading ? "수정 중..." : "DB 수정"}</span>
             </Button>
-            {err && <span className="text-sm text-red-500">{err}</span>}
+            {err && <span className="text-sm sm:text-base text-red-500">{err}</span>}
           </div>
         )}
       </CardContent>
@@ -528,7 +532,7 @@ function getYouTubeId(url = "") {
 function VideoModal({ url, onClose }) {
   const yt = getYouTubeId(url);
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-2 sm:p-4" onClick={onClose}>
       <div className="w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
         <Card>
           <CardContent>
@@ -546,7 +550,7 @@ function VideoModal({ url, onClose }) {
             ) : url?.match(/\.mp4($|\?)/i) ? (
               <video className="w-full rounded-xl" src={url} controls />
             ) : (
-              <div className="text-sm text-gray-600">
+              <div className="text-sm sm:text-base text-gray-600">
                 이 링크는 임베드할 수 없어요. <a className="text-sky-600 underline" href={url} target="_blank" rel="noreferrer">새 탭에서 열기</a>
               </div>
             )}
@@ -561,10 +565,10 @@ function VideoModal({ url, onClose }) {
 // ----- AppHome -----
 function AppHome() {
   const navigate = useNavigate();
-  const [program, setProgram] = useState(() => loadLS() || emptyProgram());
+  const [program, setProgram] = useState(() => emptyProgram());
   const role = localStorage.getItem("role"); // 'counselor' | 'client' | null
 
-  // [API 연동] 실제로는 프로그램 마스터 선택/추가 UI에서 받아와야 함
+  // 실제로는 프로그램 마스터 선택/추가 UI에서 받아와야 함
   const programMasterId = 1; // 예시값
 
   const [clientMode, setClientMode] = useState(() => {
@@ -578,6 +582,28 @@ function AppHome() {
   const [showMenu, setShowMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const route = useLocation();
+
+  // DB에서 프로그램 주차 목록 불러오기
+  const reloadWeeks = async () => {
+    try {
+      const weeks = await api.listProgramWeeks(programMasterId);
+      setProgram(p => ({
+        ...p,
+        weeks: weeks.map(w => ({
+          weekLabel: w.programWeekName,
+          dateTag: w.programWeekDate ? new Date(w.programWeekDate.replace(/\./g, "-")) : null,
+          id: w.id,
+          items: [],
+        }))
+      }));
+    } catch (e) {
+      console.error("DB에서 주차 목록 불러오기 실패:", e);
+    }
+  };
+
+  useEffect(() => {
+    reloadWeeks();
+  }, []);
 
   useEffect(() => saveLS(program), [program]);
   useEffect(() => {
@@ -627,7 +653,7 @@ function AppHome() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl p-4">
+    <div className="mx-auto max-w-full sm:max-w-3xl px-2 sm:px-4 md:p-4">
       <Toolbar
         clientMode={clientMode}
         setClientMode={setClientMode}
@@ -640,12 +666,12 @@ function AppHome() {
       <HeaderEditable program={program} setProgram={role === "counselor" ? setProgram : undefined} clientMode={clientMode} />
 
       {role === "counselor" && program.weeks.length === 0 && (
-        <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-gray-500">
+        <div className="rounded-xl sm:rounded-2xl border border-dashed p-4 sm:p-6 text-center text-sm sm:text-base text-gray-500">
           주차가 없습니다. 우측 상단의 <b>주차 설정</b> 버튼을 눌러 1~20주를 생성하세요.
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {program.weeks.map((week, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
             <WeekEditor
@@ -656,18 +682,19 @@ function AppHome() {
               role={role}
               weekIdx={i}
               programMasterId={programMasterId}
+              reloadWeeks={reloadWeeks}
             />
           </motion.div>
         ))}
 
         {!clientMode && role === "counselor" && (
           <div className="grid place-items-center py-6">
-            <Button onClick={addWeek} className="px-6 py-3 text-base"><Plus /> 주차 추가(프론트)</Button>
+            <Button className="px-4 sm:px-6 py-3 text-base"><Plus /> <span className="hidden sm:inline">주차 추가(프론트)</span></Button>
           </div>
         )}
       </div>
 
-      <footer className="py-10 text-center text-xs text-gray-400">
+      <footer className="py-6 sm:py-10 text-center text-xs sm:text-sm text-gray-400">
         역할: {role === "counselor" ? "상담사" : "내담자"} • 로컬 저장됨
       </footer>
 
@@ -681,7 +708,7 @@ function AppHome() {
         onOpenProfile={() => setShowProfile(true)}
         onLogout={onLogout}
       />
-      <ProfileSheet open={showProfile} onClose={() => setShowProfile(false)} />
+      {/* <ProfileSheet open={showProfile} onClose={() => setShowProfile(false)} /> */}
     </div>
   );
 }

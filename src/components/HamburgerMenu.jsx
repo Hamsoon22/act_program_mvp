@@ -94,19 +94,14 @@ export default function HamburgerMenu({ open, onClose, onOpenProfile, onLogout }
           <MenuItem to="/" icon={<Home className="w-5 h-5" />} onClose={onClose}>홈</MenuItem>
 
           {/* 프로필 시트(오버레이) 열기 */}
-          <button
+          {/* <button
             onClick={() => { onClose?.(); onOpenProfile?.(); }}
             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-50 text-slate-800 border border-transparent hover:border-slate-100 text-left"
-          >
-            <UserIcon className="w-5 h-5" />
-            <span className="text-sm font-medium">프로필</span>
-          </button>
-
-          <MenuItem to="/hub" icon={<Info className="w-5 h-5" />} onClose={onClose}>허브</MenuItem>
+          > </button> */}
+          <MenuItem to="/profile"  icon={<UserIcon className="w-5 h-5" />} className="text-sm font-medium">프로필</MenuItem>
           <MenuItem to="/survey" icon={<FileText className="w-5 h-5" />} onClose={onClose}>Rumination Scale</MenuItem>
           <MenuItem to="/mbi-survey" icon={<FileText className="w-5 h-5" />} onClose={onClose}>MBI 설문</MenuItem>
           <MenuItem to="/voice-rec" icon={<Mic className="w-5 h-5" />} onClose={onClose}>목소리 녹음</MenuItem>
-          <MenuItem to="/diary" icon={<Pencil className="w-5 h-5" />} onClose={onClose}>일기 쓰기 (작성)</MenuItem>
           <MenuItem to="/diary-list" icon={<Pencil className="w-5 h-5" />} onClose={onClose}>일기 목록</MenuItem>
           <MenuItem to="/leaf-ship" icon={<Leaf className="w-5 h-5" />} onClose={onClose}>나뭇잎 배 띄우기</MenuItem>
         </nav>
