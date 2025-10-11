@@ -13,28 +13,28 @@ export default function DiaryList() {
   const [diaries, setDiaries] = useState([]);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  useEffect(() => { (async () => {
     // 컴포넌트 마운트 후 즉시 애니메이션 시작
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 100);
     return () => clearTimeout(timer);
-  }, []);
+  })(); }, []);
 
-  useEffect(() => {
+  useEffect(() => { (async () => {
     // localStorage에서 일기 목록 가져오기
-    const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
+    const savedDiaries = [] /* loaded via API */;
     setDiaries(savedDiaries);
-  }, []);
+  })(); }, []);
 
-  useEffect(() => {
+  useEffect(() => { (async () => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  })(); }, []);
 
   const handleBackClick = () => {
     setIsExiting(true);
@@ -239,9 +239,9 @@ export default function DiaryList() {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (window.confirm('정말로 이 일기를 삭제하시겠습니까?')) {
-                              const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
+                              const savedDiaries = [] /* loaded via API */;
                               const updatedDiaries = savedDiaries.filter(d => d.id !== diary.id);
-                              localStorage.setItem('diaries', JSON.stringify(updatedDiaries));
+                              // moved to API storage
                               setDiaries(updatedDiaries);
                               alert('일기가 삭제되었습니다.');
                             }

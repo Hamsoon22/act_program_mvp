@@ -1,6 +1,5 @@
-// src/App.jsx
 import React, { useState, useEffect } from "react";
-import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Calendar as CalendarIcon, User, CheckCircle2, Music2, Mic, Leaf, Pencil, Gift, FileText, Plus,
@@ -8,14 +7,20 @@ import {
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import ProtectedRoute from "./components/ProtectedRoute";
+import HeaderEditable from "./components/HeaderEditable";
 
-// 외부로 분리된 컴포넌트/컨텍스트
+// [API 연동]
+import { api } from "./lib/api";
+
+// 외부 컴포넌트/컨텍스트
 import { UserProvider } from "./context/UserContext";
 import UserMenuButton from "./components/UserMenuButton";
 import HamburgerMenu from "./components/HamburgerMenu";
 import ProfileSheet from "./components/ProfileSheet";
 
 // (허브/기능 페이지들)
+import LoginPage from "./LoginPage";
 import MainHub from "./MainHub";
 import RuminationSurvey from "./RuminationSurvey";
 import ResultPage from "./ResultPage";
@@ -28,7 +33,7 @@ import DiaryView from "./DiaryView";
 import DiaryEdit from "./DiaryEdit";
 import LeafShip from "./LeafShip";
 
-/* ========== tiny UI shims ========== */
+// ----- UI SHIMS -----
 const Button = ({ className = "", variant = "default", ...props }) => (
   <button
     className={
@@ -59,7 +64,6 @@ const CardContent = ({ className = "", children }) => (
   <div className={"p-4 " + className}>{children}</div>
 );
 
-/* ========== Program Types / utils ========== */
 const ICONS = {
   check: { label: "체크", Icon: CheckCircle2 },
   music: { label: "음악", Icon: Music2 },
@@ -69,17 +73,13 @@ const ICONS = {
   gift:  { label: "기념", Icon: Gift },
   file:  { label: "문서", Icon: FileText },
 };
-
-// 기존 타입 유지 + feature 추가
 const TYPES = [
   { value: "assessment", label: "진단/설문" },
   { value: "practice",   label: "연습/활동" },
   { value: "content",    label: "콘텐츠" },
   { value: "milestone",  label: "마일스톤" },
-  { value: "feature",    label: "앱 기능" }, // 추가
+  { value: "feature",    label: "앱 기능" },
 ];
-
-// 앱 기능 라우트 매핑
 const FEATURES = {
   survey: { label: "Rumination Scale", path: "/survey" },
   mbi:    { label: "MBI 설문",         path: "/mbi-survey" },
@@ -92,7 +92,7 @@ function emptyProgram() {
   return { title: "ACT Program", dateStart: null, dateEnd: null, coach: "", weeks: [] };
 }
 
-// LocalStorage helpers (프로그램)
+// LocalStorage helpers
 const STORAGE_KEY = "act-program-builder-mvp";
 const saveLS = (data) => {
   const replacer = (key, value) => (value instanceof Date ? value.toISOString() : value);
@@ -117,14 +117,21 @@ const loadLS = () => {
 
 const ROLE_LS = "act-role";
 const MODE_LS = "act-clientmode";
-
 const cn = (...a) => a.filter(Boolean).join(" ");
 
-/* ========== Toolbar ========== */
+// [날짜 포맷] YYYY.MM.DD
+function formatDateToYYYYMMDD(date) {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}.${month}.${day}`;
+}
+
+// ----- Toolbar -----
 function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onOpenMenu }) {
   const [copied, setCopied] = useState(false);
   const copyShare = async () => {
-    // 현재 보기를 복사 (HashRouter 사용 시에도 안전)
     await navigator.clipboard.writeText(window.location.href);
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
@@ -144,13 +151,13 @@ function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onO
       </div>
       <div className="flex items-center gap-2">
         {role === "counselor" && (
-          <Button variant="outline" onClick={copyShare}>
-            <LinkIcon size={16} />
-            {copied ? "링크 복사됨!" : "링크 복사"}
-          </Button>
-        )}
-        {role === "counselor" && (
-          <Button variant="outline" onClick={openWeekSetup}>새 프로그램</Button>
+          <>
+            <Button variant="outline" onClick={copyShare}>
+              <LinkIcon size={16} />
+              {copied ? "링크 복사됨!" : "링크 복사"}
+            </Button>
+            <Button variant="outline" onClick={openWeekSetup}>새 프로그램</Button>
+          </>
         )}
         <UserMenuButton onClick={onOpenMenu} />
         {role && (
@@ -161,116 +168,8 @@ function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onO
   );
 }
 
-/* ========== Landing ========== */
-function Landing({ onChooseRole }) {
-  return (
-    <div className="mx-auto max-w-md py-16">
-      <div className="mb-8 text-center">
-        <h1 className="mb-2 text-3xl font-bold tracking-tight text-sky-700">나만의 프로그램을 만들어보세요</h1>
-        <p className="mb-1 text-base text-gray-600">상담사와 내담자가 함께하는 맞춤 프로그램을 손쉽게 설계하고, 실행할 수 있습니다.</p>
-        <p className="text-sm text-gray-400">아래에서 역할을 선택해 시작하세요.</p>
-      </div>
-      <div className="space-y-6">
-        <Button className="w-full rounded-2xl py-4 text-lg font-semibold shadow bg-sky-600 hover:bg-sky-700" onClick={() => onChooseRole("counselor")}>
-          <LogIn size={20} /> 상담사로 프로그램 만들기
-        </Button>
-        <Button className="w-full rounded-2xl py-4 text-lg font-semibold text-sky-700 shadow" variant="outline" onClick={() => onChooseRole("client")}>
-          내담자(클라이언트)로 참여하기
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-/* ========== HeaderEditable ========== */
-function HeaderEditable({ program, setProgram, clientMode }) {
-  return (
-    <Card className="mb-4">
-      <CardContent>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="col-span-2">
-            {clientMode ? (
-              <h1 className="text-2xl font-semibold leading-snug">{program.title}</h1>
-            ) : (
-              <div className="space-y-1">
-                <Label>프로그램 제목</Label>
-                <Input value={program.title} onChange={(e) => setProgram({ ...program, title: e.target.value })} />
-              </div>
-            )}
-            <div className="mt-3 flex flex-col gap-2 text-sm text-gray-700">
-              <div className="flex items-center gap-2">
-                <CalendarIcon size={16} />
-                {clientMode ? (
-                  <span>{program.dateStart && program.dateEnd ? `${program.dateStart.toLocaleDateString()} ~ ${program.dateEnd.toLocaleDateString()}` : ""}</span>
-                ) : (
-                  <div className="flex gap-2">
-                    <DatePicker selected={program.dateStart} onChange={(date) => setProgram({ ...program, dateStart: date })} selectsStart startDate={program.dateStart} endDate={program.dateEnd} dateFormat="yyyy.MM.dd" placeholderText="시작일" className="border rounded-xl px-2 py-1 text-sm" />
-                    <span>~</span>
-                    <DatePicker selected={program.dateEnd} onChange={(date) => setProgram({ ...program, dateEnd: date })} selectsEnd startDate={program.dateStart} endDate={program.dateEnd} minDate={program.dateStart} dateFormat="yyyy.MM.dd" placeholderText="종료일" className="border rounded-xl px-2 py-1 text-sm" />
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <User size={16} />
-                {clientMode ? (
-                  <span>{program.coach}</span>
-                ) : (
-                  <Input value={program.coach} onChange={(e) => setProgram({ ...program, coach: e.target.value })} placeholder="상담사 이름" />
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-/* ========== Video helpers / Cards / Week ========== */
-function getYouTubeId(url = "") {
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1);
-    if (u.hostname.includes("youtube.com")) return u.searchParams.get("v");
-    return null;
-  } catch {
-    return null;
-  }
-}
-function VideoModal({ url, onClose }) {
-  const yt = getYouTubeId(url);
-  return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-4" onClick={onClose}>
-      <div className="w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
-        <Card>
-          <CardContent>
-            {yt ? (
-              <div className="aspect-video w-full overflow-hidden rounded-xl">
-                <iframe
-                  className="h-full w-full"
-                  src={`https://www.youtube.com/embed/${yt}`}
-                  title="Video"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            ) : url?.match(/\.mp4($|\?)/i) ? (
-              <video className="w-full rounded-xl" src={url} controls />
-            ) : (
-              <div className="text-sm text-gray-600">
-                이 링크는 임베드할 수 없어요. <a className="text-sky-600 underline" href={url} target="_blank" rel="noreferrer">새 탭에서 열기</a>
-              </div>
-            )}
-            <div className="mt-4 text-right"><Button variant="outline" onClick={onClose}>닫기</Button></div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEditModeChange, idx, weekIdx }) {
+// ----- ProgramItemCard -----
+function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEditModeChange, idx, weekIdx, role }) {
   const navigate = useNavigate();
   const Icon = ICONS[item.icon]?.Icon ?? FileText;
   const [open, setOpen] = useState(false);
@@ -285,7 +184,6 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
   useEffect(() => { setDiary(localStorage.getItem(diaryKey) || ""); }, [diaryKey]);
   const hasVideo = Boolean(item.videoUrl);
 
-  // 기능 변경 시 자동 제목: 사용자가 직접 수정하지 않았다면(autoTitle)
   useEffect(() => {
     if (!isFeature) return;
     if (!item.featureKey) {
@@ -295,7 +193,6 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
     if (item.autoTitle && selectedFeature) {
       onChange({ title: selectedFeature.label });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFeature, item.featureKey, item.autoTitle]);
 
   function saveDiary() {
@@ -357,7 +254,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
               </div>
             )}
           </>
-        ) : editMode ? (
+        ) : editMode && role === "counselor" ? (
           <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
             <div className="md:col-span-2">
               <Label>제목</Label>
@@ -386,7 +283,6 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
                 {TYPES.map((t) => (<option key={t.value} value={t.value}>{t.label}</option>))}
               </select>
             </div>
-
             {isFeature && (
               <div className="md:col-span-3">
                 <Label>연결할 앱 기능</Label>
@@ -406,7 +302,6 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
                 )}
               </div>
             )}
-
             <div className="md:col-span-2">
               <Label>부제 / 설명</Label>
               <Input value={item.subtitle} onChange={(e) => onChange({ subtitle: e.target.value })} />
@@ -417,17 +312,16 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
                 {Object.entries(ICONS).map(([k, v]) => (<option key={k} value={k}>{v.label}</option>))}
               </select>
             </div>
-
             {item.type === "assessment" && (
               <div className="md:col-span-3">
                 <Label>진단/설문 링크</Label>
-                <Input placeholder="설문/진단 링크 입력 (예: https://forms.gle/...)" value={item.link || ""} onChange={e => onChange({ link: e.target.value })} />
+                <Input placeholder="설문/진단 링크 입력" value={item.link || ""} onChange={e => onChange({ link: e.target.value })} />
               </div>
             )}
             {item.type === "content" && (
               <div className="md:col-span-3">
-                <Label>동영상 링크 (YouTube 주소 또는 MP4 링크)</Label>
-                <Input placeholder="예: https://youtu.be/abc123 또는 https://cdn.site/video.mp4" value={item.videoUrl || ""} onChange={(e) => onChange({ videoUrl: e.target.value })} />
+                <Label>동영상 링크 (YouTube/MP4)</Label>
+                <Input placeholder="https://youtu.be/..." value={item.videoUrl || ""} onChange={(e) => onChange({ videoUrl: e.target.value })} />
               </div>
             )}
           </div>
@@ -449,7 +343,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
           </>
         )}
       </div>
-      {clientMode ? null : (
+      {!clientMode && role === "counselor" && (
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => { onEditModeChange(editMode ? false : true); }}>
             {editMode ? <Save size={16} /> : <Pencil size={16} />}{editMode ? "저장" : "수정"}
@@ -462,10 +356,79 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
   );
 }
 
-function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx }) {
+// ----- WeekEditor -----
+function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, programMasterId }) {
   const [editItemIdx, setEditItemIdx] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  // [API 연동] 프로그램 주차(week) 추가
+  const handleAddWeekToDB = async () => {
+    setErr("");
+    setLoading(true);
+    try {
+      const dateStr = formatDateToYYYYMMDD(week.dateTag); // [날짜 포맷] 적용!
+      const resp = await api.createProgramWeek({
+        programMasterId,
+        programWeekName: week.weekLabel,
+        programWeekDate: dateStr,
+      });
+      alert("주차(DB) 저장 성공! (id: " + resp.id + ")");
+      // 필요시 resp.id를 상태에 반영
+      onChange({ ...week, id: resp.id }); // DB id 저장
+    } catch (e) {
+      setErr(e.message || "주차 저장 실패");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // [API 연동] 프로그램 주차(week) 수정
+  const handleUpdateWeekToDB = async () => {
+    setErr("");
+    setLoading(true);
+    try {
+      const dateStr = formatDateToYYYYMMDD(week.dateTag);
+      if (!week.id) {
+        setErr("DB id값 없음 (먼저 저장하세요)");
+        setLoading(false);
+        return;
+      }
+      await api.updateProgramWeek(week.id, {
+        programMasterId,
+        programWeekName: week.weekLabel,
+        programWeekDate: dateStr,
+      });
+      alert("주차(DB) 수정 성공!");
+    } catch (e) {
+      setErr(e.message || "주차 수정 실패");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // [API 연동] 프로그램 주차(week) 삭제
+  const handleDeleteWeekFromDB = async () => {
+    setErr("");
+    setLoading(true);
+    try {
+      if (!week.id) {
+        setErr("DB id값 없음 (먼저 저장하세요)");
+        setLoading(false);
+        return;
+      }
+      await api.deleteProgramWeek(week.id);
+      alert("주차(DB) 삭제 성공!");
+      if (onRemove) onRemove();
+    } catch (e) {
+      setErr(e.message || "주차 삭제 실패");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const addItem = () => {
-    // 기본을 feature 아이템으로 생성 + 자동 제목
+    if (role !== "counselor") return;
     const newItem = {
       icon: "file",
       type: "feature",
@@ -485,6 +448,7 @@ function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx }) {
     onChange({ ...week, items });
   };
   const removeItem = (idx) => {
+    if (role !== "counselor") return;
     const items = week.items.filter((_, i) => i !== idx);
     onChange({ ...week, items });
     setEditItemIdx(null);
@@ -501,18 +465,22 @@ function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx }) {
               </>
             ) : (
               <div className="flex items-center gap-2">
-                <Input className="w-24" value={week.weekLabel} onChange={(e) => onChange({ ...week, weekLabel: e.target.value })} placeholder="1주차" />
-                <DatePicker selected={week.dateTag} onChange={(date) => onChange({ ...week, dateTag: date })} dateFormat="yyyy.MM.dd" placeholderText="날짜" className="w-36 rounded-xl border px-2 py-1 text-sm" />
+                <Input className="w-24" value={week.weekLabel} onChange={(e) => onChange({ ...week, weekLabel: e.target.value })} placeholder="1주차" disabled={role !== "counselor"} />
+                <DatePicker selected={week.dateTag} onChange={(date) => onChange({ ...week, dateTag: date })} dateFormat="yyyy.MM.dd" placeholderText="날짜" className="w-36 rounded-xl border px-2 py-1 text-sm" disabled={role !== "counselor"} />
               </div>
             )}
           </div>
           {role === "counselor" && (
-            <Button variant="ghost" onClick={onRemove}>
-              <Trash2 size={16} /> 삭제
-            </Button>
+            <>
+              <Button variant="ghost" onClick={onRemove}>
+                <Trash2 size={16} /> 삭제(프론트)
+              </Button>
+              <Button variant="outline" color="red" onClick={handleDeleteWeekFromDB} disabled={loading}>
+                DB 삭제
+              </Button>
+            </>
           )}
         </div>
-
         <div className="space-y-3">
           {week.items.map((item, idx) => (
             <ProgramItemCard
@@ -525,50 +493,85 @@ function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx }) {
               onEditModeChange={(on) => setEditItemIdx(on ? idx : null)}
               idx={idx}
               weekIdx={weekIdx}
+              role={role}
             />
           ))}
         </div>
-
-        {!clientMode && (
-          <div className="mt-4">
-            <Button onClick={addItem}><Plus size={16} /> 프로그램 추가하기</Button>
+        {!clientMode && role === "counselor" && (
+          <div className="mt-4 flex gap-2 flex-wrap">
+            <Button onClick={addItem}><Plus size={16} /> 프로그램 추가(프론트)</Button>
+            <Button onClick={handleAddWeekToDB} disabled={loading}>
+              {loading ? "저장 중..." : "DB 저장"}
+            </Button>
+            <Button onClick={handleUpdateWeekToDB} disabled={loading}>
+              {loading ? "수정 중..." : "DB 수정"}
+            </Button>
+            {err && <span className="text-sm text-red-500">{err}</span>}
           </div>
         )}
       </CardContent>
     </Card>
   );
 }
-function WeekSetup({ initialWeeks = 4, onConfirm, onCancel }) {
-  const [weeks, setWeeks] = useState(initialWeeks);
+
+// ----- VideoModal -----
+function getYouTubeId(url = "") {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes("youtu.be")) return u.pathname.slice(1);
+    if (u.hostname.includes("youtube.com")) return u.searchParams.get("v");
+    return null;
+  } catch {
+    return null;
+  }
+}
+function VideoModal({ url, onClose }) {
+  const yt = getYouTubeId(url);
   return (
-    <div className="fixed inset-0 z-[60] grid place-items-center bg-black/40 p-4">
-      <Card className="w-full max-w-md">
-        <CardContent>
-          <h3 className="mb-4 text-lg font-semibold">몇 주 프로그램입니까?</h3>
-          <p className="mb-2 text-sm text-gray-600">1주부터 20주까지 선택할 수 있어요.</p>
-          <select className="mb-4 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" value={weeks} onChange={(e) => setWeeks(Number(e.target.value))}>
-            {Array.from({ length: 20 }).map((_, i) => (<option key={i + 1} value={i + 1}>{i + 1}주</option>))}
-          </select>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onCancel}>취소</Button>
-            <Button onClick={() => onConfirm(weeks)}>확인</Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-4" onClick={onClose}>
+      <div className="w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+        <Card>
+          <CardContent>
+            {yt ? (
+              <div className="aspect-video w-full overflow-hidden rounded-xl">
+                <iframe
+                  className="h-full w-full"
+                  src={`https://www.youtube.com/embed/${yt}`}
+                  title="Video"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : url?.match(/\.mp4($|\?)/i) ? (
+              <video className="w-full rounded-xl" src={url} controls />
+            ) : (
+              <div className="text-sm text-gray-600">
+                이 링크는 임베드할 수 없어요. <a className="text-sky-600 underline" href={url} target="_blank" rel="noreferrer">새 탭에서 열기</a>
+              </div>
+            )}
+            <div className="mt-4 text-right"><Button variant="outline" onClick={onClose}>닫기</Button></div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
 
-/* ========== AppHome: 메인 프로그램 화면 ========== */
+// ----- AppHome -----
 function AppHome() {
+  const navigate = useNavigate();
   const [program, setProgram] = useState(() => loadLS() || emptyProgram());
-  // 해시(#client) 의존 제거 — 사용자/상담사 모두 LS로 역할/모드 보존
-  const [role, setRole] = useState(() => localStorage.getItem(ROLE_LS) || null);
+  const role = localStorage.getItem("role"); // 'counselor' | 'client' | null
+
+  // [API 연동] 실제로는 프로그램 마스터 선택/추가 UI에서 받아와야 함
+  const programMasterId = 1; // 예시값
+
   const [clientMode, setClientMode] = useState(() => {
-    const saved = localStorage.getItem(MODE_LS);
+    const saved = localStorage.getItem("act-clientmode");
     if (saved === "1") return true;
     if (saved === "0") return false;
-    return (localStorage.getItem(ROLE_LS) === "client");
+    return role === "client";
   });
 
   const [showWeekSetup, setShowWeekSetup] = useState(false);
@@ -577,8 +580,6 @@ function AppHome() {
   const route = useLocation();
 
   useEffect(() => saveLS(program), [program]);
-
-  // 역할/모드 영구 저장 (뒤로가기/새로고침 시 유지)
   useEffect(() => {
     if (role) localStorage.setItem(ROLE_LS, role);
     else localStorage.removeItem(ROLE_LS);
@@ -586,51 +587,44 @@ function AppHome() {
   useEffect(() => {
     localStorage.setItem(MODE_LS, clientMode ? "1" : "0");
   }, [clientMode]);
-
-  // 라우트 바뀌면 메뉴/프로필 닫기
   useEffect(() => {
     if (showMenu) setShowMenu(false);
     if (showProfile) setShowProfile(false);
   }, [route.pathname]);
-
-  // 역할이 바뀌면 메뉴/프로필 닫기
   useEffect(() => {
     if (showMenu) setShowMenu(false);
     if (showProfile) setShowProfile(false);
   }, [role]);
 
   const onLogout = () => {
-    setRole(null);
     setShowMenu(false);
     setShowProfile(false);
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("role");
     localStorage.removeItem(ROLE_LS);
     localStorage.removeItem(MODE_LS);
+    navigate("/login", { replace: true });
   };
 
   const generateWeeks = (n) => {
+    if (role !== "counselor") return;
     const weeks = Array.from({ length: n }).map((_, idx) => ({ weekLabel: `${idx + 1}주차`, dateTag: null, items: [] }));
     setProgram((p) => ({ ...p, weeks }));
   };
   const openWeekSetup = () => setShowWeekSetup(true);
   const onConfirmWeeks = (n) => { generateWeeks(n); setShowWeekSetup(false); };
-  const addWeek = () => setProgram({ ...program, weeks: [...program.weeks, { weekLabel: `${program.weeks.length + 1}주차`, dateTag: null, items: [] }] });
+  const addWeek = () => {
+    if (role === "counselor") {
+      setProgram({ ...program, weeks: [...program.weeks, { weekLabel: `${program.weeks.length + 1}주차`, dateTag: null, items: [] }] });
+    }
+  };
   const changeWeek = (idx, patch) => setProgram({ ...program, weeks: program.weeks.map((w, i) => (i === idx ? patch : w)) });
-  const removeWeek = (idx) => setProgram({ ...program, weeks: program.weeks.filter((_, i) => i !== idx) });
-
-  if (!role)
-    return (
-      <>
-        <Landing
-          onChooseRole={(r) => {
-            setRole(r);
-            setClientMode(r === "client");
-            if (r === "counselor" && program.weeks.length === 0) setShowWeekSetup(true);
-            setShowMenu(false);
-            setShowProfile(false);
-          }}
-        />
-      </>
-    );
+  const removeWeek = (idx) => {
+    if (role === "counselor") {
+      setProgram({ ...program, weeks: program.weeks.filter((_, i) => i !== idx) });
+    }
+  };
 
   return (
     <div className="mx-auto max-w-3xl p-4">
@@ -643,7 +637,7 @@ function AppHome() {
         onOpenMenu={() => setShowMenu(true)}
       />
 
-      <HeaderEditable program={program} setProgram={setProgram} clientMode={clientMode} />
+      <HeaderEditable program={program} setProgram={role === "counselor" ? setProgram : undefined} clientMode={clientMode} />
 
       {role === "counselor" && program.weeks.length === 0 && (
         <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-gray-500">
@@ -661,13 +655,14 @@ function AppHome() {
               clientMode={clientMode}
               role={role}
               weekIdx={i}
+              programMasterId={programMasterId}
             />
           </motion.div>
         ))}
 
         {!clientMode && role === "counselor" && (
           <div className="grid place-items-center py-6">
-            <Button onClick={addWeek} className="px-6 py-3 text-base"><Plus /> 주차 추가</Button>
+            <Button onClick={addWeek} className="px-6 py-3 text-base"><Plus /> 주차 추가(프론트)</Button>
           </div>
         )}
       </div>
@@ -676,7 +671,7 @@ function AppHome() {
         역할: {role === "counselor" ? "상담사" : "내담자"} • 로컬 저장됨
       </footer>
 
-      {showWeekSetup && (
+      {showWeekSetup && role === "counselor" && (
         <WeekSetup initialWeeks={Math.max(1, program.weeks.length || 4)} onConfirm={onConfirmWeeks} onCancel={() => setShowWeekSetup(false)} />
       )}
 
@@ -691,25 +686,32 @@ function AppHome() {
   );
 }
 
-/* ========== 최상위 App: 라우팅 구성 ========== */
+// ----- 최상위 App -----
 export default function App() {
   return (
     <UserProvider>
       <Routes>
-        {/* 메인 프로그램 */}
-        <Route path="/" element={<AppHome />} />
-        {/* 허브 및 기능 페이지들 */}
-        <Route path="/hub" element={<MainHub />} />
-        <Route path="/survey" element={<RuminationSurvey />} />
-        <Route path="/result" element={<ResultPage />} />
-        <Route path="/mbi-survey" element={<MBISurvey />} />
-        <Route path="/mbi-result" element={<MBIResultPage />} />
-        <Route path="/voice-rec" element={<VoiceRec />} />
-        <Route path="/diary" element={<Diary />} />
-        <Route path="/diary-list" element={<DiaryList />} />
-        <Route path="/diary-view" element={<DiaryView />} />
-        <Route path="/diary-edit" element={<DiaryEdit />} />
-        <Route path="/leaf-ship" element={<LeafShip />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <AppHome />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/hub" element={<ProtectedRoute><MainHub /></ProtectedRoute>} />
+        <Route path="/survey" element={<ProtectedRoute><RuminationSurvey /></ProtectedRoute>} />
+        <Route path="/result" element={<ProtectedRoute><ResultPage /></ProtectedRoute>} />
+        <Route path="/mbi-survey" element={<ProtectedRoute><MBISurvey /></ProtectedRoute>} />
+        <Route path="/mbi-result" element={<ProtectedRoute><MBIResultPage /></ProtectedRoute>} />
+        <Route path="/voice-rec" element={<ProtectedRoute><VoiceRec /></ProtectedRoute>} />
+        <Route path="/diary" element={<ProtectedRoute><Diary /></ProtectedRoute>} />
+        <Route path="/diary-list" element={<ProtectedRoute><DiaryList /></ProtectedRoute>} />
+        <Route path="/diary-view" element={<ProtectedRoute><DiaryView /></ProtectedRoute>} />
+        <Route path="/diary-edit" element={<ProtectedRoute><DiaryEdit /></ProtectedRoute>} />
+        <Route path="/leaf-ship" element={<ProtectedRoute><LeafShip /></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </UserProvider>
   );

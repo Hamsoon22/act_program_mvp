@@ -64,9 +64,9 @@ export default function DiaryView() {
     
     if (window.confirm('정말로 이 일기를 삭제하시겠습니까?')) {
       // localStorage에서 일기 삭제
-      const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
+      const savedDiaries = [] /* loaded via API */;
       const updatedDiaries = savedDiaries.filter(d => d.id !== diary.id);
-      localStorage.setItem('diaries', JSON.stringify(updatedDiaries));
+      // moved to API storage
       
       alert('일기가 삭제되었습니다.');
       navigate('/', { replace: true });

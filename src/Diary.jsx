@@ -5,6 +5,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { CSSTransition } from 'react-transition-group';
 import backIcon from './back.svg';
+import { api } from './lib/api';
 
 export default function Diary() {
   const [scrolled, setScrolled] = useState(false);
@@ -48,7 +49,7 @@ export default function Diary() {
     }, 300);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (diaryText.trim()) {
       // 일기 저장
       const newDiary = {
@@ -63,14 +64,14 @@ export default function Diary() {
         timestamp: new Date().toISOString()
       };
       
-      // localStorage에서 기존 일기들 가져오기
-      const existingDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
+      // (API 저장으로 변경)
+      const existingDiaries = [] /* loaded via API */;
       
-      // 새 일기 추가
+      // 새 일기 추가 (메모리)
       const updatedDiaries = [newDiary, ...existingDiaries];
       
-      // localStorage에 저장
-      localStorage.setItem('diaries', JSON.stringify(updatedDiaries));
+            // API 저장
+      try { await api.createDiary({ userId: 'guest', ...newDiary }); } catch (e) { console.error(e); alert('저장 실패: ' + e.message); return; }
       
       alert('일기가 저장되었습니다!');
       

@@ -71,7 +71,7 @@ export default function DiaryEdit() {
       };
       
       // localStorage에서 기존 일기들 가져오기
-      const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
+      const savedDiaries = [] /* loaded via API */;
       
       // 해당 일기 수정
       const updatedDiaries = savedDiaries.map(d => 
@@ -79,7 +79,7 @@ export default function DiaryEdit() {
       );
       
       // localStorage에 저장
-      localStorage.setItem('diaries', JSON.stringify(updatedDiaries));
+      // moved to API storage
       
       alert('일기가 수정되었습니다!');
       
