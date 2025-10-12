@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container, Typography, Box, AppBar, Toolbar, IconButton, Button, Card, CardContent
+  Container, Typography, Box, AppBar, Toolbar, IconButton, Button
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { CSSTransition } from 'react-transition-group';
@@ -13,28 +13,28 @@ export default function DiaryList() {
   const [diaries, setDiaries] = useState([]);
   const navigate = useNavigate();
 
-  useEffect(() => { (async () => {
-    // 컴포넌트 마운트 후 즉시 애니메이션 시작
+  // 애니메이션 시작
+  useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 100);
     return () => clearTimeout(timer);
-  })(); }, []);
+  }, []);
 
-  useEffect(() => { (async () => {
-    // localStorage에서 일기 목록 가져오기
-    const savedDiaries = [] /* loaded via API */;
+  // 로컬스토리지에서 일기 목록 가져오기
+  useEffect(() => {
+    const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
     setDiaries(savedDiaries);
-  })(); }, []);
+  }, []);
 
-  useEffect(() => { (async () => {
+  // 스크롤 이벤트
+  useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
-
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  })(); }, []);
+  }, []);
 
   const handleBackClick = () => {
     setIsExiting(true);
@@ -126,8 +126,6 @@ export default function DiaryList() {
           </AppBar>
 
           <Container maxWidth="sm" sx={{ py: 2, pb: 4 }}>
-          
-
             {diaries.length === 0 ? (
               // 일기가 없을 때 표시
               <Box sx={{ 
@@ -239,9 +237,10 @@ export default function DiaryList() {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (window.confirm('정말로 이 일기를 삭제하시겠습니까?')) {
-                              const savedDiaries = [] /* loaded via API */;
+                              const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
                               const updatedDiaries = savedDiaries.filter(d => d.id !== diary.id);
-                              // moved to API storage
+                              localStorage.setItem('diaries', JSON.stringify(updatedDiaries));
+
                               setDiaries(updatedDiaries);
                               alert('일기가 삭제되었습니다.');
                             }

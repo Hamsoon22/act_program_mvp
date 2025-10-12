@@ -7,6 +7,7 @@ import { CSSTransition } from 'react-transition-group';
 import backIcon from './back.svg';
 import { api } from './lib/api';
 
+
 export default function Diary() {
   const [scrolled, setScrolled] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
@@ -151,9 +152,10 @@ export default function Diary() {
                 <Button
                   onClick={handleSave}
                   sx={{
-                    color: '#00A3D9',
+                    color: '#000000',
                     fontWeight: 'bold',
-                    fontSize: '18px',
+                    fontSize: '16px',
+
                     textTransform: 'none',
                     minWidth: 'auto',
                     p: 0

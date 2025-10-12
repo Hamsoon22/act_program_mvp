@@ -10,12 +10,10 @@ import "react-datepicker/dist/react-datepicker.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HeaderEditable from "./components/HeaderEditable";
 import { api } from "./lib/api";
-
 import { UserProvider } from "./context/UserContext";
 import UserMenuButton from "./components/UserMenuButton";
 import HamburgerMenu from "./components/HamburgerMenu";
 import ProfileSheet from "./components/ProfileSheet";
-
 import LoginPage from "./LoginPage";
 import MainHub from "./MainHub";
 import RuminationSurvey from "./RuminationSurvey";
@@ -29,7 +27,7 @@ import DiaryView from "./DiaryView";
 import DiaryEdit from "./DiaryEdit";
 import LeafShip from "./LeafShip";
 
-// ----- UI SHIMS -----
+/* ========== UI SHIMS ========== */
 const Button = ({ className = "", variant = "default", ...props }) => (
   <button
     className={
@@ -69,6 +67,7 @@ const ICONS = {
   gift:  { label: "기념", Icon: Gift },
   file:  { label: "문서", Icon: FileText },
 };
+
 const TYPES = [
   { value: "assessment", label: "진단/설문" },
   { value: "practice",   label: "연습/활동" },
@@ -76,6 +75,7 @@ const TYPES = [
   { value: "milestone",  label: "마일스톤" },
   { value: "feature",    label: "앱 기능" },
 ];
+
 const FEATURES = {
   survey: { label: "Rumination Scale", path: "/survey" },
   mbi:    { label: "MBI 설문",         path: "/mbi-survey" },
@@ -122,9 +122,11 @@ function formatDateToYYYYMMDD(date) {
   return `${year}.${month}.${day}`;
 }
 
-// ----- Toolbar -----
+
 function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onOpenMenu }) {
   const [copied, setCopied] = useState(false);
+  const [showNewProgramModal, setShowNewProgramModal] = useState(false);
+
   const copyShare = async () => {
     await navigator.clipboard.writeText(window.location.href);
     setCopied(true);
@@ -132,45 +134,104 @@ function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onO
   };
 
   return (
-    <div className="sticky top-0 z-50 -mx-2 sm:-mx-4 mb-3 sm:mb-4 flex items-center justify-between rounded-xl sm:rounded-2xl bg-white/80 p-3 sm:p-4 backdrop-blur">
-      <div className="flex items-center gap-2 sm:gap-4">
-        {role === "counselor" && (
-          <Button onClick={() => setClientMode((v) => !v)} variant="outline" className="rounded-full">
-            {clientMode ? <EyeOff size={16} /> : <Eye size={16} />}
-            <span className="hidden sm:inline">{clientMode ? "빌더 보기" : "클라이언트 보기"}</span>
-          </Button>
-        )}
-        {role === "counselor" && (
-          <Button variant="outline" onClick={openWeekSetup}>
-            <CalendarIcon size={16} />
-            <span className="hidden sm:inline">주차 설정</span>
-          </Button>
-        )}
-      </div>
-      <div className="flex items-center gap-2 sm:gap-4">
-        {role === "counselor" && (
-          <>
-            <Button variant="outline" onClick={copyShare}>
-              <LinkIcon size={16} />
-              <span className="hidden sm:inline">{copied ? "링크 복사됨!" : "링크 복사"}</span>
+    <div className="sticky top-0 z-50 -mx-4 mb-4 rounded-2xl bg-white/80 p-4 backdrop-blur">
+      {/* 상단: 클라이언트 보기 버튼과 메뉴 버튼 */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          {role === "counselor" && (
+            <Button onClick={() => setClientMode((v) => !v)} variant="outline" className="rounded-2xl">
+              {clientMode ? <EyeOff size={16} /> : <Eye size={16} />} {clientMode ? "빌더 보기" : "내담자 뷰"}
             </Button>
-            <Button variant="outline" onClick={openWeekSetup}>
-              <Plus size={16} />
-              <span className="hidden sm:inline">새 프로그램</span>
-            </Button>
-          </>
-        )}
-        <UserMenuButton onClick={onOpenMenu} />
-        {role && (
-          <Button variant="ghost" onClick={onLogout}>
-            <LogOut size={16}/>
-            <span className="hidden sm:inline">로그아웃</span>
-          </Button>
-        )}
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <UserMenuButton onClick={onOpenMenu} />
+        </div>
       </div>
+      
+      {/* 하단: 상담사 전용 기능 버튼들 */}
+      {role === "counselor" && (
+        <div className="flex items-center gap-2 w-full">
+          <Button
+            variant="outline"
+            onClick={openWeekSetup}
+            className="flex-1 bg-gray-100 hover:bg-gray-200 border-gray-300 justify-center"
+          >
+            주차 설정
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowNewProgramModal(true)}
+            className="flex-1 bg-gray-100 hover:bg-gray-200 border-gray-300 justify-center"
+          >
+            새 프로그램
+          </Button>
+          <Button
+            variant="outline"
+            onClick={copyShare}
+            className="flex-1 bg-gray-100 hover:bg-gray-200 border-gray-300 justify-center"
+          >
+            <LinkIcon size={16} />
+            {copied ? "링크 복사됨!" : "링크 복사"}
+          </Button>
+        </div>
+      )}
+
+      {/* 새 프로그램 모달 */}
+      {showNewProgramModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl p-8 shadow-xl max-w-xs w-full text-center">
+            <h2 className="text-lg font-bold mb-2">새 프로그램</h2>
+            <p className="mb-4 text-gray-600">준비중입니다!<br />빠른 시일 내에 지원 예정이에요.</p>
+            <Button variant="outline" onClick={() => setShowNewProgramModal(false)}>닫기</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+// export default Toolbar;
+//   return (
+//     <div className="sticky top-0 z-50 -mx-2 sm:-mx-4 mb-3 sm:mb-4 flex items-center justify-between rounded-xl sm:rounded-2xl bg-white/80 p-3 sm:p-4 backdrop-blur">
+//       <div className="flex items-center gap-2 sm:gap-4">
+//         {role === "counselor" && (
+//           <Button onClick={() => setClientMode((v) => !v)} variant="outline" className="rounded-full">
+//             {clientMode ? <EyeOff size={16} /> : <Eye size={16} />}
+//             <span className="hidden sm:inline">{clientMode ? "빌더 보기" : "클라이언트 보기"}</span>
+//           </Button>
+//         )}
+//         {role === "counselor" && (
+//           <Button variant="outline" onClick={openWeekSetup}>
+//             <CalendarIcon size={16} />
+//             <span className="hidden sm:inline">주차 설정</span>
+//           </Button>
+//         )}
+//       </div>
+//       <div className="flex items-center gap-2 sm:gap-4">
+//         {role === "counselor" && (
+//           <>
+//             <Button variant="outline" onClick={copyShare}>
+//               <LinkIcon size={16} />
+//               <span className="hidden sm:inline">{copied ? "링크 복사됨!" : "링크 복사"}</span>
+//             </Button>
+//             <Button variant="outline" onClick={openWeekSetup}>
+//               <Plus size={16} />
+//               <span className="hidden sm:inline">새 프로그램</span>
+//             </Button>
+//           </>
+//         )}
+//         <UserMenuButton onClick={onOpenMenu} />
+//         {role && (
+//           <Button variant="ghost" onClick={onLogout}>
+//             <LogOut size={16}/>
+//             <span className="hidden sm:inline">로그아웃</span>
+//           </Button>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
 
 // ----- ProgramItemCard -----
 function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEditModeChange, idx, weekIdx, role }) {
@@ -713,7 +774,6 @@ function AppHome() {
   );
 }
 
-// ----- 최상위 App -----
 export default function App() {
   return (
     <UserProvider>
@@ -728,6 +788,7 @@ export default function App() {
           }
         />
         <Route path="/hub" element={<ProtectedRoute><MainHub /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><ProfileSheet/></ProtectedRoute>} />
         <Route path="/survey" element={<ProtectedRoute><RuminationSurvey /></ProtectedRoute>} />
         <Route path="/result" element={<ProtectedRoute><ResultPage /></ProtectedRoute>} />
         <Route path="/mbi-survey" element={<ProtectedRoute><MBISurvey /></ProtectedRoute>} />
