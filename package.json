@@ -16,10 +16,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.2",
     "@mui/material": "^7.3.2",
-<<<<<<< HEAD
-=======
     "axios": "^1.12.2",
->>>>>>> origin/main
     "framer-motion": "^12.23.19",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.544.0",
