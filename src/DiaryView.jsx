@@ -67,7 +67,6 @@ export default function DiaryView() {
       const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
       const updatedDiaries = savedDiaries.filter(d => d.id !== diary.id);
       localStorage.setItem('diaries', JSON.stringify(updatedDiaries));
-      
       alert('일기가 삭제되었습니다.');
       navigate('/', { replace: true });
     }

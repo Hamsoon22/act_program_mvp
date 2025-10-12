@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Container, Typography, Box, AppBar, Toolbar, IconButton, Button, Card, CardContent
+  Container, Typography, Box, AppBar, Toolbar, IconButton, Button
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { CSSTransition } from 'react-transition-group';
@@ -13,25 +13,25 @@ export default function DiaryList() {
   const [diaries, setDiaries] = useState([]);
   const navigate = useNavigate();
 
+  // 애니메이션 시작
   useEffect(() => {
-    // 컴포넌트 마운트 후 즉시 애니메이션 시작
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 100);
     return () => clearTimeout(timer);
   }, []);
 
+  // 로컬스토리지에서 일기 목록 가져오기
   useEffect(() => {
-    // localStorage에서 일기 목록 가져오기
     const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
     setDiaries(savedDiaries);
   }, []);
 
+  // 스크롤 이벤트
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
-
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -126,8 +126,6 @@ export default function DiaryList() {
           </AppBar>
 
           <Container maxWidth="sm" sx={{ py: 2, pb: 4 }}>
-          
-
             {diaries.length === 0 ? (
               // 일기가 없을 때 표시
               <Box sx={{ 
@@ -242,6 +240,7 @@ export default function DiaryList() {
                               const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
                               const updatedDiaries = savedDiaries.filter(d => d.id !== diary.id);
                               localStorage.setItem('diaries', JSON.stringify(updatedDiaries));
+
                               setDiaries(updatedDiaries);
                               alert('일기가 삭제되었습니다.');
                             }
