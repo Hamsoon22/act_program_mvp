@@ -10,12 +10,10 @@ import "react-datepicker/dist/react-datepicker.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HeaderEditable from "./components/HeaderEditable";
 import { api } from "./lib/api";
-
 import { UserProvider } from "./context/UserContext";
 import UserMenuButton from "./components/UserMenuButton";
 import HamburgerMenu from "./components/HamburgerMenu";
 import ProfileSheet from "./components/ProfileSheet";
-
 import LoginPage from "./LoginPage";
 import MainHub from "./MainHub";
 import RuminationSurvey from "./RuminationSurvey";
@@ -29,7 +27,7 @@ import DiaryView from "./DiaryView";
 import DiaryEdit from "./DiaryEdit";
 import LeafShip from "./LeafShip";
 
-// ----- UI SHIMS -----
+/* ========== UI SHIMS ========== */
 const Button = ({ className = "", variant = "default", ...props }) => (
   <button
     className={
@@ -69,6 +67,7 @@ const ICONS = {
   gift:  { label: "기념", Icon: Gift },
   file:  { label: "문서", Icon: FileText },
 };
+
 const TYPES = [
   { value: "assessment", label: "진단/설문" },
   { value: "practice",   label: "연습/활동" },
@@ -76,6 +75,7 @@ const TYPES = [
   { value: "milestone",  label: "마일스톤" },
   { value: "feature",    label: "앱 기능" },
 ];
+
 const FEATURES = {
   survey: { label: "Rumination Scale", path: "/survey" },
   mbi:    { label: "MBI 설문",         path: "/mbi-survey" },
@@ -122,9 +122,10 @@ function formatDateToYYYYMMDD(date) {
   return `${year}.${month}.${day}`;
 }
 
-// ----- Toolbar -----
 function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onOpenMenu }) {
   const [copied, setCopied] = useState(false);
+  const [showNewProgramModal, setShowNewProgramModal] = useState(false);
+
   const copyShare = async () => {
     await navigator.clipboard.writeText(window.location.href);
     setCopied(true);
@@ -132,42 +133,54 @@ function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onO
   };
 
   return (
-    <div className="sticky top-0 z-50 -mx-2 sm:-mx-4 mb-3 sm:mb-4 flex items-center justify-between rounded-xl sm:rounded-2xl bg-white/80 p-3 sm:p-4 backdrop-blur">
-      <div className="flex items-center gap-2 sm:gap-4">
-        {role === "counselor" && (
-          <Button onClick={() => setClientMode((v) => !v)} variant="outline" className="rounded-full">
-            {clientMode ? <EyeOff size={16} /> : <Eye size={16} />}
-            <span className="hidden sm:inline">{clientMode ? "빌더 보기" : "클라이언트 보기"}</span>
-          </Button>
-        )}
-        {role === "counselor" && (
-          <Button variant="outline" onClick={openWeekSetup}>
-            <CalendarIcon size={16} />
-            <span className="hidden sm:inline">주차 설정</span>
-          </Button>
-        )}
-      </div>
-      <div className="flex items-center gap-2 sm:gap-4">
-        {role === "counselor" && (
-          <>
-            <Button variant="outline" onClick={copyShare}>
-              <LinkIcon size={16} />
-              <span className="hidden sm:inline">{copied ? "링크 복사됨!" : "링크 복사"}</span>
+    <div className="sticky top-0 z-50 -mx-4 mb-4 rounded-2xl bg-white/80 p-4 backdrop-blur">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          {role === "counselor" && (
+            <Button onClick={() => setClientMode((v) => !v)} variant="outline" className="rounded-2xl">
+              {clientMode ? <EyeOff size={16} /> : <Eye size={16} />} {clientMode ? "빌더 보기" : "내담자 뷰"}
             </Button>
-            <Button variant="outline" onClick={openWeekSetup}>
-              <Plus size={16} />
-              <span className="hidden sm:inline">새 프로그램</span>
-            </Button>
-          </>
-        )}
-        <UserMenuButton onClick={onOpenMenu} />
-        {role && (
-          <Button variant="ghost" onClick={onLogout}>
-            <LogOut size={16}/>
-            <span className="hidden sm:inline">로그아웃</span>
-          </Button>
-        )}
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <UserMenuButton onClick={onOpenMenu} />
+        </div>
       </div>
+      {role === "counselor" && (
+        <div className="flex items-center gap-2 w-full">
+          {/* <Button
+            variant="outline"
+            onClick={openWeekSetup}
+            className="flex-1 bg-gray-100 hover:bg-gray-200 border-gray-300 justify-center"
+          >
+            주차 설정
+          </Button> */}
+          <Button
+            variant="outline"
+            onClick={() => setShowNewProgramModal(true)}
+            className="flex-1 bg-gray-100 hover:bg-gray-200 border-gray-300 justify-center"
+          >
+            새 프로그램
+          </Button>
+          <Button
+            variant="outline"
+            onClick={copyShare}
+            className="flex-1 bg-gray-100 hover:bg-gray-200 border-gray-300 justify-center"
+          >
+            <LinkIcon size={16} />
+            {copied ? "링크 복사됨!" : "링크 복사"}
+          </Button>
+        </div>
+      )}
+      {showNewProgramModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl p-8 shadow-xl max-w-xs w-full text-center">
+            <h2 className="text-lg font-bold mb-2">새 프로그램</h2>
+            <p className="mb-4 text-gray-600">준비중입니다!<br />빠른 시일 내에 지원 예정이에요.</p>
+            <Button variant="outline" onClick={() => setShowNewProgramModal(false)}>닫기</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -234,8 +247,21 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
               <FeatureOpenButton />
             </div>
             <div className="text-xs sm:text-sm text-gray-500">{item.subtitle}</div>
+            {/* 내부 라우팅 버튼으로 navigate 사용 */}
             {item.type === "assessment" && item.link && (
-              <a href={item.link} className="inline-block mt-2 text-sky-600 underline" target="_blank" rel="noopener noreferrer">진단하기 바로가기</a>
+              <Button
+                variant="outline"
+                className="mt-2 text-sky-600 underline"
+                onClick={() => {
+                  if (item.link && item.link.startsWith("/")) {
+                    navigate(item.link);
+                  } else if (item.link) {
+                    window.open(item.link, "_blank");
+                  }
+                }}
+              >
+                진단하기 바로가기
+              </Button>
             )}
             {isDiary && (
               <div className="mt-3">
@@ -344,7 +370,19 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
             </div>
             <div className="text-xs sm:text-sm text-gray-500">{item.subtitle}</div>
             {item.type === "assessment" && item.link && (
-              <a href={item.link} className="inline-block mt-2 text-sky-600 underline" target="_blank" rel="noopener noreferrer">진단하기 바로가기</a>
+              <Button
+                variant="outline"
+                className="mt-2 text-sky-600 underline"
+                onClick={() => {
+                  if (item.link && item.link.startsWith("/")) {
+                    navigate(item.link);
+                  } else if (item.link) {
+                    window.open(item.link, "_blank");
+                  }
+                }}
+              >
+                진단하기 바로가기
+              </Button>
             )}
           </>
         )}
@@ -363,6 +401,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
   );
 }
 
+// 아래 WeekEditor, VideoModal, AppHome, App 등은 기존 코드 그대로 두세요!
 // ----- WeekEditor -----
 function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, programMasterId, reloadWeeks }) {
   const [editItemIdx, setEditItemIdx] = useState(null);
@@ -562,14 +601,12 @@ function VideoModal({ url, onClose }) {
   );
 }
 
+
 // ----- AppHome -----
 function AppHome() {
   const navigate = useNavigate();
-  const [program, setProgram] = useState(() => emptyProgram());
   const role = localStorage.getItem("role"); // 'counselor' | 'client' | null
-
-  // 실제로는 프로그램 마스터 선택/추가 UI에서 받아와야 함
-  const programMasterId = 1; // 예시값
+  const programMasterId = 1;
 
   const [clientMode, setClientMode] = useState(() => {
     const saved = localStorage.getItem("act-clientmode");
@@ -578,32 +615,108 @@ function AppHome() {
     return role === "client";
   });
 
+  // ====== 하드코딩된 weeks 배열 ======
+  const hardCodedWeeks = [
+    {
+      weekLabel: "1주차",
+      dateTag: null,
+      items: [
+        {
+          icon: "check",
+          type: "assessment",
+          title: "MBI (Malasch Burnout Inventory)",
+          subtitle: "진단하기",
+          link: "/mbi-survey",
+        },
+        {
+          icon: "music",
+          type: "content",
+          title: "호흡 및 일상 명상하기",
+          subtitle: "링크 임베드",
+          videoUrl: "https://www.youtube.com/embed/BY6pJb5zEQA",
+        }
+      ]
+    },
+    {
+      weekLabel: "2주차",
+      dateTag: null,
+      items: [
+        {
+          icon: "check",
+          type: "assessment",
+          title: "Rumination Scale",
+          subtitle: "진단하기",
+          link: "/survey",
+        },
+        {
+          icon: "music",
+          type: "content",
+          title: "mindfulness 영상 보기",
+          subtitle: "마인드풀니스 유튜브",
+          videoUrl: "https://www.youtube.com/embed/3nwwKbM_vJc",
+        },
+        {
+          icon: "mic",
+          type: "feature",
+          title: "목소리 녹음하기",
+          featureKey: "voice",
+          subtitle: "녹음 기능",
+        },
+        {
+          icon: "leaf",
+          type: "feature",
+          title: "나뭇잎배 보내기",
+          featureKey: "leaf",
+          subtitle: "나뭇잎 배 띄우기",
+        }
+      ]
+    },
+    {
+      weekLabel: "3주차",
+      dateTag: null,
+      items: [
+        {
+          icon: "check",
+          type: "assessment",
+          title: "VLQ 진단하기",
+          subtitle: "아직 작동 안 함",
+          link: "#",
+        },
+        {
+          icon: "pencil",
+          type: "feature",
+          title: "일기쓰기",
+          featureKey: "diary",
+          subtitle: "일기 쓰기 기능",
+        }
+      ]
+    },
+    {
+      weekLabel: "4주차",
+      dateTag: null,
+      items: [
+        {
+          icon: "gift",
+          type: "milestone",
+          title: "수고하셨습니다.",
+          subtitle: "완주!"
+        }
+      ]
+    }
+  ];
+
+  // ====== 여기서만 하드코딩(초기값) ======
+  const [program, setProgram] = useState(() => ({
+    title: "ACT Program",
+    dateStart: null, dateEnd: null, coach: "",
+    weeks: hardCodedWeeks
+  }));
+
+  // 이하 기존 코드 그대로
   const [showWeekSetup, setShowWeekSetup] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const route = useLocation();
-
-  // DB에서 프로그램 주차 목록 불러오기
-  const reloadWeeks = async () => {
-    try {
-      const weeks = await api.listProgramWeeks(programMasterId);
-      setProgram(p => ({
-        ...p,
-        weeks: weeks.map(w => ({
-          weekLabel: w.programWeekName,
-          dateTag: w.programWeekDate ? new Date(w.programWeekDate.replace(/\./g, "-")) : null,
-          id: w.id,
-          items: [],
-        }))
-      }));
-    } catch (e) {
-      console.error("DB에서 주차 목록 불러오기 실패:", e);
-    }
-  };
-
-  useEffect(() => {
-    reloadWeeks();
-  }, []);
 
   useEffect(() => saveLS(program), [program]);
   useEffect(() => {
@@ -682,7 +795,7 @@ function AppHome() {
               role={role}
               weekIdx={i}
               programMasterId={programMasterId}
-              reloadWeeks={reloadWeeks}
+              reloadWeeks={undefined} // DB 연결 X
             />
           </motion.div>
         ))}
@@ -713,7 +826,6 @@ function AppHome() {
   );
 }
 
-// ----- 최상위 App -----
 export default function App() {
   return (
     <UserProvider>
@@ -728,6 +840,7 @@ export default function App() {
           }
         />
         <Route path="/hub" element={<ProtectedRoute><MainHub /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><ProfileSheet/></ProtectedRoute>} />
         <Route path="/survey" element={<ProtectedRoute><RuminationSurvey /></ProtectedRoute>} />
         <Route path="/result" element={<ProtectedRoute><ResultPage /></ProtectedRoute>} />
         <Route path="/mbi-survey" element={<ProtectedRoute><MBISurvey /></ProtectedRoute>} />

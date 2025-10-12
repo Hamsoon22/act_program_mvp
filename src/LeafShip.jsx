@@ -13,6 +13,7 @@ export default function LeafShip() {
   const [modalOpen, setModalOpen] = useState(true);
   const [message, setMessage] = useState('');
   const [videoPlaying, setVideoPlaying] = useState(false);
+  const videoRef = React.useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,6 +48,10 @@ export default function LeafShip() {
       // 영상 재생 시작
       setTimeout(() => {
         setVideoPlaying(true);
+        if (videoRef.current) {
+          videoRef.current.currentTime = 0;
+          videoRef.current.play();
+        }
       }, 500);
     }
   };
@@ -57,6 +62,10 @@ export default function LeafShip() {
       setModalOpen(false);
       setTimeout(() => {
         setVideoPlaying(true);
+        if (videoRef.current) {
+          videoRef.current.currentTime = 0;
+          videoRef.current.play();
+        }
       }, 500);
     }
   };
@@ -79,7 +88,30 @@ export default function LeafShip() {
             transition: 'transform 0.3s ease-in-out',
           }}
         >
-          {/* 배경 영상 (플레이스홀더) */}
+          {/* 배경 영상 */}
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            preload="auto"
+            onLoadedData={() => console.log('Video loaded successfully')}
+            onError={(e) => console.error('Video error:', e)}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              zIndex: 1,
+              opacity: videoPlaying ? 1 : 0,
+              transition: 'opacity 0.5s ease-in-out'
+            }}
+          >
+            <source src="/act_program_mvp/leaf.mp4" type="video/mp4" />
+          </video>
+
+          {/* 기본 배경 (영상이 로드되기 전) */}
           <Box
             sx={{
               position: 'absolute',
@@ -90,7 +122,9 @@ export default function LeafShip() {
               backgroundImage: 'linear-gradient(135deg, #1E9FD4 0%, #54A046 100%)',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              zIndex: 1
+              zIndex: 1,
+              opacity: videoPlaying ? 0 : 1,
+              transition: 'opacity 0.5s ease-in-out'
             }}
           />
 
@@ -102,8 +136,9 @@ export default function LeafShip() {
               left: 0,
               width: '100%',
               height: '100%',
-              backgroundColor: 'rgba(0, 0, 0, 0.6)',
-              zIndex: 2
+              backgroundColor: modalOpen ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)',
+              zIndex: 2,
+              transition: 'background-color 0.5s ease-in-out'
             }}
           />
 
