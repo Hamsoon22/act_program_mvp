@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { CSSTransition } from 'react-transition-group';
 import {
   Calendar as CalendarIcon, User, CheckCircle2, Music2, Mic, Leaf, Pencil, Gift, FileText, Plus,
   Eye, EyeOff, Trash2, LogIn, LogOut, Play, Save, Link as LinkIcon,
@@ -8,14 +9,14 @@ import {
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import ProtectedRoute from "./components/ProtectedRoute";
-import HeaderEditable from "./components/HeaderEditable";
 import { api } from "./lib/api";
 import { UserProvider } from "./context/UserContext";
 import UserMenuButton from "./components/UserMenuButton";
 import HamburgerMenu from "./components/HamburgerMenu";
-import ProfileSheet from "./components/ProfileSheet";
+import BottomNavigation from "./components/BottomNavigation";
 import LoginPage from "./LoginPage";
 import MainHub from "./MainHub";
+import ProfilePage from "./ProfilePage";
 import RuminationSurvey from "./RuminationSurvey";
 import ResultPage from "./ResultPage";
 import MBISurvey from "./MBISurvey";
@@ -78,14 +79,14 @@ const TYPES = [
 
 const FEATURES = {
   survey: { label: "Rumination Scale", path: "/survey" },
-  mbi:    { label: "MBI 설문",         path: "/mbi-survey" },
+  mbi:    { label: "MBI-v.students",         path: "/mbi-survey" },
   voice:  { label: "목소리 녹음",       path: "/voice-rec" },
   diary:  { label: "일기 쓰기",         path: "/diary" },
   leaf:   { label: "나뭇잎 배 띄우기",   path: "/leaf-ship" },
 };
 
 function emptyProgram() {
-  return { title: "ACT Program", dateStart: null, dateEnd: null, coach: "", weeks: [] };
+  return { title: "번아웃 회복 워크샵", dateStart: null, dateEnd: null, coach: "", weeks: [] };
 }
 const STORAGE_KEY = "act-program-builder-mvp";
 const saveLS = (data) => {
@@ -123,7 +124,7 @@ function formatDateToYYYYMMDD(date) {
 }
 
 
-function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onOpenMenu }) {
+function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onOpenMenu, program, setProgram }) {
   const [copied, setCopied] = useState(false);
   const [showNewProgramModal, setShowNewProgramModal] = useState(false);
 
@@ -134,18 +135,28 @@ function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onO
   };
 
   return (
-    <div className="sticky top-0 z-50 -mx-4 mb-4 rounded-2xl bg-white/80 p-4 backdrop-blur">
-      {/* 상단: 클라이언트 보기 버튼과 메뉴 버튼 */}
+    <div className="sticky top-0 z-50 -mx-[18px] mb-4 rounded-2xl bg-white/80 p-4 backdrop-blur">
+      {/* 상단: 프로그램 제목, 클라이언트 보기 버튼과 메뉴 버튼 */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* 프로그램 제목 */}
+          {setProgram ? (
+            <input
+              type="text"
+              value={program?.title || "번아웃 회복 워크샵"}
+              onChange={(e) => setProgram({...program, title: e.target.value})}
+              className="text-lg sm:text-xl font-bold text-gray-800 bg-transparent border-none outline-none focus:bg-white/20 rounded px-2 py-1 transition-colors min-w-0"
+              placeholder="프로그램 제목"
+            />
+          ) : (
+            <h1 className="text-lg sm:text-xl font-bold text-gray-800">{program?.title || "번아웃 회복 워크샵"}</h1>
+          )}
+          
           {role === "counselor" && (
             <Button onClick={() => setClientMode((v) => !v)} variant="outline" className="rounded-2xl">
               {clientMode ? <EyeOff size={16} /> : <Eye size={16} />} {clientMode ? "빌더 보기" : "내담자 뷰"}
             </Button>
           )}
-        </div>
-        <div className="flex items-center gap-2">
-          <UserMenuButton onClick={onOpenMenu} />
         </div>
       </div>
       
@@ -627,6 +638,8 @@ function VideoModal({ url, onClose }) {
 function AppHome() {
   const navigate = useNavigate();
   const [program, setProgram] = useState(() => emptyProgram());
+  const [isExiting, setIsExiting] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const role = localStorage.getItem("role"); // 'counselor' | 'client' | null
 
   // 실제로는 프로그램 마스터 선택/추가 UI에서 받아와야 함
@@ -641,7 +654,7 @@ function AppHome() {
 
   const [showWeekSetup, setShowWeekSetup] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
+  const [activeTab, setActiveTab] = useState('home');
   const route = useLocation();
 
   // DB에서 프로그램 주차 목록 불러오기
@@ -676,16 +689,13 @@ function AppHome() {
   }, [clientMode]);
   useEffect(() => {
     if (showMenu) setShowMenu(false);
-    if (showProfile) setShowProfile(false);
   }, [route.pathname]);
   useEffect(() => {
     if (showMenu) setShowMenu(false);
-    if (showProfile) setShowProfile(false);
   }, [role]);
 
   const onLogout = () => {
     setShowMenu(false);
-    setShowProfile(false);
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("role");
@@ -713,8 +723,35 @@ function AppHome() {
     }
   };
 
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'mypage') {
+      console.log('App: Starting exit animation to profile');
+      setIsExiting(true);
+      setTimeout(() => {
+        console.log('App: Navigating to profile');
+        navigate('/profile');
+      }, 300);
+    }
+    // 'home' tab은 이미 홈에 있으므로 아무것도 하지 않음
+  };
+
   return (
-    <div className="mx-auto max-w-full sm:max-w-3xl px-2 sm:px-4 md:p-4">
+    <>
+      <style>
+        {`
+          .fade-container {
+            opacity: 1;
+            transition: opacity 300ms ease-out;
+          }
+          
+          .fade-container.exiting {
+            opacity: 0;
+          }
+        `}
+      </style>
+      
+      <div className={`fade-container ${isExiting ? 'exiting' : ''} mx-auto max-w-full sm:max-w-3xl px-[18px]`}>
       <Toolbar
         clientMode={clientMode}
         setClientMode={setClientMode}
@@ -722,9 +759,9 @@ function AppHome() {
         onLogout={onLogout}
         openWeekSetup={openWeekSetup}
         onOpenMenu={() => setShowMenu(true)}
+        program={program}
+        setProgram={role === "counselor" ? setProgram : undefined}
       />
-
-      <HeaderEditable program={program} setProgram={role === "counselor" ? setProgram : undefined} clientMode={clientMode} />
 
       {role === "counselor" && program.weeks.length === 0 && (
         <div className="rounded-xl sm:rounded-2xl border border-dashed p-4 sm:p-6 text-center text-sm sm:text-base text-gray-500">
@@ -755,7 +792,7 @@ function AppHome() {
         )}
       </div>
 
-      <footer className="py-6 sm:py-10 text-center text-xs sm:text-sm text-gray-400">
+      <footer className="py-6 sm:py-10 text-center text-xs sm:text-sm text-gray-400 mb-16">
         역할: {role === "counselor" ? "상담사" : "내담자"} • 로컬 저장됨
       </footer>
 
@@ -766,11 +803,29 @@ function AppHome() {
       <HamburgerMenu
         open={showMenu}
         onClose={() => setShowMenu(false)}
-        onOpenProfile={() => setShowProfile(true)}
+        onOpenProfile={() => {
+          console.log('App: Profile navigation from menu');
+          setShowMenu(false);
+          setIsExiting(true);
+          setTimeout(() => {
+            console.log('App: Navigating to profile from menu');
+            navigate('/profile');
+          }, 300);
+        }}
+        onOpenHome={() => {}} // Already on home page
         onLogout={onLogout}
       />
-      {/* <ProfileSheet open={showProfile} onClose={() => setShowProfile(false)} /> */}
-    </div>
+
+      <BottomNavigation
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onOpenMenu={() => setShowMenu(true)}
+        onOpenProfile={() => navigate('/profile')}
+        showMenu={showMenu}
+        onCloseMenu={() => setShowMenu(false)}
+      />
+      </div>
+    </>
   );
 }
 
@@ -788,7 +843,7 @@ export default function App() {
           }
         />
         <Route path="/hub" element={<ProtectedRoute><MainHub /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><ProfileSheet/></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/survey" element={<ProtectedRoute><RuminationSurvey /></ProtectedRoute>} />
         <Route path="/result" element={<ProtectedRoute><ResultPage /></ProtectedRoute>} />
         <Route path="/mbi-survey" element={<ProtectedRoute><MBISurvey /></ProtectedRoute>} />

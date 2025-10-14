@@ -74,7 +74,7 @@ export default function MBISurvey() {
   const handleBackClick = () => {
     setIsExiting(true);
     setTimeout(() => {
-      navigate(-1);
+      navigate('/');
     }, 250); // CSSTransition 시간에 맞춤
   };
 

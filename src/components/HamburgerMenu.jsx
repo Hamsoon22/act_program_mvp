@@ -13,11 +13,15 @@ import {
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
 
-function MenuItem({ to, icon, children, onClose }) {
+function MenuItem({ to, icon, children, onClose, onNavigate }) {
   const navigate = useNavigate();
   const go = () => {
-    onClose?.();         // 먼저 닫기
-    navigate(to);        // 그 다음 이동
+    if (onNavigate) {
+      onNavigate(to);  // 특별한 처리가 필요한 경우
+    } else {
+      onClose?.();     // 먼저 닫기
+      navigate(to);    // 그 다음 이동
+    }
   };
   return (
     <button
@@ -25,15 +29,26 @@ function MenuItem({ to, icon, children, onClose }) {
       className="flex w-full items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-50 text-slate-800 border border-transparent hover:border-slate-100 text-left"
     >
       <span>{icon}</span>
-      <span className="text-sm font-medium">{children}</span>
+      <span className="text-base font-medium">{children}</span>
     </button>
   );
 }
 
-export default function HamburgerMenu({ open, onClose, onOpenProfile, onLogout }) {
+export default function HamburgerMenu({ open, onClose, onOpenProfile, onOpenHome, onLogout }) {
   const { user } = useUser();
   const navigate = useNavigate();
   const route = useLocation();
+
+  const handleSpecialNavigation = (to) => {
+    if (to === '/profile' && onOpenProfile) {
+      onOpenProfile();  // 특별한 프로필 처리
+    } else if (to === '/' && onOpenHome) {
+      onOpenHome();     // 특별한 홈 처리
+    } else {
+      onClose?.();
+      navigate(to);
+    }
+  };
 
   // ESC로 닫기 + 바디 스크롤 잠금
   useEffect(() => {
@@ -52,13 +67,13 @@ export default function HamburgerMenu({ open, onClose, onOpenProfile, onLogout }
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose}>
-      <aside
-        className="absolute right-0 top-0 h-full w-[86%] max-w-sm bg-white shadow-xl p-5 flex flex-col"
+    <div className="fixed inset-0 z-[90] bg-white" onClick={onClose}>
+      <div
+        className="absolute inset-0 bg-white p-5 pt-0 flex flex-col pb-[100px]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center px-2 py-4 pt-7 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden">
               {user?.avatarUrl ? (
@@ -72,37 +87,30 @@ export default function HamburgerMenu({ open, onClose, onOpenProfile, onLogout }
               <p className="text-xs text-slate-500">{user?.email || "로그인되지 않음"}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-xl p-2 hover:bg-slate-100 active:scale-95 transition"
-            aria-label="닫기"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* 메뉴 */}
         <nav className="mt-6 grid gap-2">
-          <MenuItem to="/" icon={<Home className="w-5 h-5" />} onClose={onClose}>홈</MenuItem>
-          <MenuItem to="/profile"  icon={<UserIcon className="w-5 h-5" />} onClose={onClose}>프로필</MenuItem>
+          <MenuItem to="/" icon={<Home className="w-5 h-5" />} onClose={onClose} onNavigate={handleSpecialNavigation}>홈</MenuItem>
+          <MenuItem to="/profile" icon={<UserIcon className="w-5 h-5" />} onClose={onClose} onNavigate={handleSpecialNavigation}>프로필</MenuItem>
           <MenuItem to="/survey" icon={<FileText className="w-5 h-5" />} onClose={onClose}>Rumination Scale</MenuItem>
-          <MenuItem to="/mbi-survey" icon={<FileText className="w-5 h-5" />} onClose={onClose}>MBI 설문</MenuItem>
+          <MenuItem to="/mbi-survey" icon={<FileText className="w-5 h-5" />} onClose={onClose}>MBI-v.students</MenuItem>
           <MenuItem to="/voice-rec" icon={<Mic className="w-5 h-5" />} onClose={onClose}>목소리 녹음</MenuItem>
           <MenuItem to="/diary-list" icon={<Pencil className="w-5 h-5" />} onClose={onClose}>일기 목록</MenuItem>
           <MenuItem to="/leaf-ship" icon={<Leaf className="w-5 h-5" />} onClose={onClose}>나뭇잎 배 띄우기</MenuItem>
         </nav>
 
         {/* 하단 */}
-        <div className="mt-auto pt-4 border-t border-slate-100">
+        <div className="mt-auto pb-6 pt-4 border-t border-slate-100">
           <button
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 bg-slate-50 hover:bg-slate-100 text-slate-700"
+            className="w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 bg-slate-50 hover:bg-slate-100 text-slate-700"
             onClick={() => { onClose?.(); onLogout?.(); }}
           >
             <LogOut className="w-5 h-5" /> 로그아웃
           </button>
           <p className="mt-3 text-center text-xs text-slate-400">v1.0.0</p>
         </div>
-      </aside>
+      </div>
     </div>
   );
 }

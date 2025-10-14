@@ -68,7 +68,7 @@ export default function MainHub() {
           >
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                MBI
+                MBI-v.students
               </Typography>
           
             </Box>

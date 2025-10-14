@@ -12,7 +12,15 @@ export default function VoiceRec() {
   const [scrolled, setScrolled] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [recordings, setRecordings] = useState([]); // 녹음 내역 상태
+  const [recordings, setRecordings] = useState([
+    {
+      id: 'sample',
+      name: '샘플 녹음',
+      date: '2024-01-01 12:00',
+      duration: 30,
+      isSample: true
+    }
+  ]); // 녹음 내역 상태
   const [isRecording, setIsRecording] = useState(false); // 녹음 상태
   const [recordingTime, setRecordingTime] = useState(0); // 녹음 시간 (초)
   const [showRecordingModal, setShowRecordingModal] = useState(false); // 녹음 모달 표시
@@ -303,6 +311,12 @@ export default function VoiceRec() {
   const handlePlayRecording = (recording) => {
     console.log('재생 시도:', recording);
     
+    // 샘플 녹음은 재생할 수 없음
+    if (recording.isSample) {
+      console.log('샘플 녹음은 재생할 수 없습니다');
+      return;
+    }
+    
     // 기존 오디오가 재생 중이면 먼저 정지
     if (currentAudio) {
       currentAudio.pause();
@@ -504,6 +518,13 @@ export default function VoiceRec() {
   };
 
   const handleDelete = (recordingId) => {
+    // 샘플 녹음은 삭제할 수 없음
+    const recordingToDelete = recordings.find(r => r.id === recordingId);
+    if (recordingToDelete && recordingToDelete.isSample) {
+      console.log('샘플 녹음은 삭제할 수 없습니다');
+      return;
+    }
+    
     if (window.confirm('이 녹음을 삭제하시겠습니까?')) {
       setRecordings(prev => prev.filter(recording => recording.id !== recordingId));
       
@@ -683,17 +704,17 @@ export default function VoiceRec() {
                     {/* 재생 버튼 (왼쪽) */}
                     <IconButton
                       onClick={() => handlePlayRecording(recording)}
-                      disabled={playingId === recording.id && currentAudio && !currentAudio.paused}
+                      disabled={recording.isSample || (playingId === recording.id && currentAudio && !currentAudio.paused)}
                       sx={{
-                        backgroundColor: playingId === recording.id ? '#c53030' : '#333',
+                        backgroundColor: recording.isSample ? '#ccc' : (playingId === recording.id ? '#c53030' : '#333'),
                         color: 'white',
                         width: 48,
                         height: 48,
                         '&:hover': {
-                          backgroundColor: playingId === recording.id ? '#a02626' : '#555'
+                          backgroundColor: recording.isSample ? '#ccc' : (playingId === recording.id ? '#a02626' : '#555')
                         },
                         '&:disabled': {
-                          backgroundColor: '#c53030',
+                          backgroundColor: recording.isSample ? '#ccc' : '#c53030',
                           color: 'white'
                         }
                       }}
@@ -707,7 +728,12 @@ export default function VoiceRec() {
                     {/* 녹음 정보 (중앙) */}
                     <Box sx={{ flex: 1 }}>
                       <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                        녹음 {recording.number}
+                        {recording.isSample ? recording.name : `녹음 ${recording.number}`}
+                        {recording.isSample && (
+                          <Typography component="span" sx={{ color: '#999', fontSize: '12px', ml: 1 }}>
+                            (샘플)
+                          </Typography>
+                        )}
                       </Typography>
                       <Typography variant="body2" sx={{ color: '#666', fontSize: '12px' }}>
                         {recording.date} • {Math.floor(recording.duration / 60)}:{(recording.duration % 60).toString().padStart(2, '0')}
@@ -715,14 +741,16 @@ export default function VoiceRec() {
                     </Box>
                     
                     {/* 더보기 버튼 (오른쪽) */}
-                    <IconButton
-                      onClick={(e) => handleMoreClick(e, recording.id)}
-                      sx={{
-                        color: '#666'
-                      }}
-                    >
-                      <MoreVert />
-                    </IconButton>
+                    {!recording.isSample && (
+                      <IconButton
+                        onClick={(e) => handleMoreClick(e, recording.id)}
+                        sx={{
+                          color: '#666'
+                        }}
+                      >
+                        <MoreVert />
+                      </IconButton>
+                    )}
                   </Box>
                 ))}
               </Box>
