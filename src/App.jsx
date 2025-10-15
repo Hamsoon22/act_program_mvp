@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CSSTransition } from 'react-transition-group';
+import HeaderEditable from "./components/HeaderEditable";
 import {
   Calendar as CalendarIcon, User, CheckCircle2, Music2, Mic, Leaf, Pencil, Gift, FileText, Plus,
   Eye, EyeOff, Trash2, LogIn, LogOut, Play, Save, Link as LinkIcon,
@@ -22,7 +23,6 @@ import ResultPage from "./ResultPage";
 import MBISurvey from "./MBISurvey";
 import MBIResultPage from "./MBIResultPage";
 import VoiceRec from "./VoiceRec";
-import Diary from "./Diary";
 import DiaryList from "./DiaryList";
 import DiaryView from "./DiaryView";
 import DiaryEdit from "./DiaryEdit";
@@ -81,14 +81,14 @@ const TYPES = [
 
 const FEATURES = {
   survey: { label: "Rumination Scale", path: "/survey" },
-  mbi:    { label: "MBI-v.students",         path: "/mbi-survey" },
+  mbi:    { label: "MBI 설문",         path: "/mbi-survey" },
   voice:  { label: "목소리 녹음",       path: "/voice-rec" },
   diary:  { label: "일기 쓰기",         path: "/diary" },
   leaf:   { label: "나뭇잎 배 띄우기",   path: "/leaf-ship" },
 };
 
 function emptyProgram() {
-  return { title: "번아웃 회복 워크샵", dateStart: null, dateEnd: null, coach: "", weeks: [] };
+  return { title: "ACT Program", dateStart: null, dateEnd: null, coach: "", weeks: [] };
 }
 const STORAGE_KEY = "act-program-builder-mvp";
 const saveLS = (data) => {
@@ -125,8 +125,7 @@ function formatDateToYYYYMMDD(date) {
   return `${year}.${month}.${day}`;
 }
 
-
-function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onOpenMenu, program, setProgram }) {
+function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onOpenMenu }) {
   const [copied, setCopied] = useState(false);
   const [showNewProgramModal, setShowNewProgramModal] = useState(false);
 
@@ -137,41 +136,28 @@ function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onO
   };
 
   return (
-    <div className="sticky top-0 z-50 -mx-[18px] mb-4 rounded-2xl bg-white/80 p-4 backdrop-blur">
-      {/* 상단: 프로그램 제목, 클라이언트 보기 버튼과 메뉴 버튼 */}
+    <div className="sticky top-0 z-50 -mx-4 mb-4 rounded-2xl bg-white/80 p-4 backdrop-blur">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          {/* 프로그램 제목 */}
-          {setProgram ? (
-            <input
-              type="text"
-              value={program?.title || "번아웃 회복 워크샵"}
-              onChange={(e) => setProgram({...program, title: e.target.value})}
-              className="text-lg sm:text-xl font-bold text-gray-800 bg-transparent border-none outline-none focus:bg-white/20 rounded px-2 py-1 transition-colors min-w-0"
-              placeholder="프로그램 제목"
-            />
-          ) : (
-            <h1 className="text-lg sm:text-xl font-bold text-gray-800">{program?.title || "번아웃 회복 워크샵"}</h1>
-          )}
-          
+        <div className="flex items-center gap-2">
           {role === "counselor" && (
             <Button onClick={() => setClientMode((v) => !v)} variant="outline" className="rounded-2xl">
               {clientMode ? <EyeOff size={16} /> : <Eye size={16} />} {clientMode ? "빌더 보기" : "내담자 뷰"}
             </Button>
           )}
         </div>
+        <div className="flex items-center gap-2">
+          <UserMenuButton onClick={onOpenMenu} />
+        </div>
       </div>
-      
-      {/* 하단: 상담사 전용 기능 버튼들 */}
       {role === "counselor" && (
         <div className="flex items-center gap-2 w-full">
-          <Button
+          {/* <Button
             variant="outline"
             onClick={openWeekSetup}
             className="flex-1 bg-gray-100 hover:bg-gray-200 border-gray-300 justify-center"
           >
             주차 설정
-          </Button>
+          </Button> */}
           <Button
             variant="outline"
             onClick={() => setShowNewProgramModal(true)}
@@ -189,8 +175,6 @@ function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onO
           </Button>
         </div>
       )}
-
-      {/* 새 프로그램 모달 */}
       {showNewProgramModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl p-8 shadow-xl max-w-xs w-full text-center">
@@ -203,48 +187,6 @@ function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onO
     </div>
   );
 }
-
-// export default Toolbar;
-//   return (
-//     <div className="sticky top-0 z-50 -mx-2 sm:-mx-4 mb-3 sm:mb-4 flex items-center justify-between rounded-xl sm:rounded-2xl bg-white/80 p-3 sm:p-4 backdrop-blur">
-//       <div className="flex items-center gap-2 sm:gap-4">
-//         {role === "counselor" && (
-//           <Button onClick={() => setClientMode((v) => !v)} variant="outline" className="rounded-full">
-//             {clientMode ? <EyeOff size={16} /> : <Eye size={16} />}
-//             <span className="hidden sm:inline">{clientMode ? "빌더 보기" : "클라이언트 보기"}</span>
-//           </Button>
-//         )}
-//         {role === "counselor" && (
-//           <Button variant="outline" onClick={openWeekSetup}>
-//             <CalendarIcon size={16} />
-//             <span className="hidden sm:inline">주차 설정</span>
-//           </Button>
-//         )}
-//       </div>
-//       <div className="flex items-center gap-2 sm:gap-4">
-//         {role === "counselor" && (
-//           <>
-//             <Button variant="outline" onClick={copyShare}>
-//               <LinkIcon size={16} />
-//               <span className="hidden sm:inline">{copied ? "링크 복사됨!" : "링크 복사"}</span>
-//             </Button>
-//             <Button variant="outline" onClick={openWeekSetup}>
-//               <Plus size={16} />
-//               <span className="hidden sm:inline">새 프로그램</span>
-//             </Button>
-//           </>
-//         )}
-//         <UserMenuButton onClick={onOpenMenu} />
-//         {role && (
-//           <Button variant="ghost" onClick={onLogout}>
-//             <LogOut size={16}/>
-//             <span className="hidden sm:inline">로그아웃</span>
-//           </Button>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
 
 // ----- ProgramItemCard -----
 function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEditModeChange, idx, weekIdx, role }) {
@@ -308,8 +250,21 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
               <FeatureOpenButton />
             </div>
             <div className="text-xs sm:text-sm text-gray-500">{item.subtitle}</div>
+            {/* 내부 라우팅 버튼으로 navigate 사용 */}
             {item.type === "assessment" && item.link && (
-              <a href={item.link} className="inline-block mt-2 text-sky-600 underline" target="_blank" rel="noopener noreferrer">진단하기 바로가기</a>
+              <Button
+                variant="outline"
+                className="mt-2 text-sky-600 underline"
+                onClick={() => {
+                  if (item.link && item.link.startsWith("/")) {
+                    navigate(item.link);
+                  } else if (item.link) {
+                    window.open(item.link, "_blank");
+                  }
+                }}
+              >
+                진단하기 바로가기
+              </Button>
             )}
             {isDiary && (
               <div className="mt-3">
@@ -418,7 +373,19 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
             </div>
             <div className="text-xs sm:text-sm text-gray-500">{item.subtitle}</div>
             {item.type === "assessment" && item.link && (
-              <a href={item.link} className="inline-block mt-2 text-sky-600 underline" target="_blank" rel="noopener noreferrer">진단하기 바로가기</a>
+              <Button
+                variant="outline"
+                className="mt-2 text-sky-600 underline"
+                onClick={() => {
+                  if (item.link && item.link.startsWith("/")) {
+                    navigate(item.link);
+                  } else if (item.link) {
+                    window.open(item.link, "_blank");
+                  }
+                }}
+              >
+                진단하기 바로가기
+              </Button>
             )}
           </>
         )}
@@ -437,6 +404,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
   );
 }
 
+// 아래 WeekEditor, VideoModal, AppHome, App 등은 기존 코드 그대로 두세요!
 // ----- WeekEditor -----
 function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, programMasterId, reloadWeeks }) {
   const [editItemIdx, setEditItemIdx] = useState(null);
@@ -636,18 +604,12 @@ function VideoModal({ url, onClose }) {
   );
 }
 
+
 // ----- AppHome -----
 function AppHome() {
   const navigate = useNavigate();
-  const [program, setProgram] = useState(() => emptyProgram());
-  const [isExiting, setIsExiting] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
-  
-  // 정상적인 역할 관리
   const role = localStorage.getItem("role"); // 'counselor' | 'client' | null
-
-  // 실제로는 프로그램 마스터 선택/추가 UI에서 받아와야 함
-  const programMasterId = 1; // 예시값
+  const programMasterId = 1;
 
   const [clientMode, setClientMode] = useState(() => {
     const saved = localStorage.getItem("act-clientmode");
@@ -656,32 +618,108 @@ function AppHome() {
     return role === "client";
   });
 
+  // ====== 하드코딩된 weeks 배열 ======
+  const hardCodedWeeks = [
+    {
+      weekLabel: "1주차",
+      dateTag: null,
+      items: [
+        {
+          icon: "check",
+          type: "assessment",
+          title: "MBI (Malasch Burnout Inventory)",
+          subtitle: "진단하기",
+          link: "/mbi-survey",
+        },
+        {
+          icon: "music",
+          type: "content",
+          title: "호흡 및 일상 명상하기",
+          subtitle: "링크 임베드",
+          videoUrl: "https://www.youtube.com/embed/BY6pJb5zEQA",
+        }
+      ]
+    },
+    {
+      weekLabel: "2주차",
+      dateTag: null,
+      items: [
+        {
+          icon: "check",
+          type: "assessment",
+          title: "Rumination Scale",
+          subtitle: "진단하기",
+          link: "/survey",
+        },
+        {
+          icon: "music",
+          type: "content",
+          title: "mindfulness 영상 보기",
+          subtitle: "마인드풀니스 유튜브",
+          videoUrl: "https://www.youtube.com/embed/3nwwKbM_vJc",
+        },
+        {
+          icon: "mic",
+          type: "feature",
+          title: "목소리 녹음하기",
+          featureKey: "voice",
+          subtitle: "녹음 기능",
+        },
+        {
+          icon: "leaf",
+          type: "feature",
+          title: "나뭇잎배 보내기",
+          featureKey: "leaf",
+          subtitle: "나뭇잎 배 띄우기",
+        }
+      ]
+    },
+    {
+      weekLabel: "3주차",
+      dateTag: null,
+      items: [
+        {
+          icon: "check",
+          type: "assessment",
+          title: "VLQ 진단하기",
+          subtitle: "내 삶의 가치 찾기",
+          link: "/vlq-survey",
+        },
+        {
+          icon: "pencil",
+          type: "feature",
+          title: "일기쓰기",
+          featureKey: "diary",
+          subtitle: "일기 쓰기 기능",
+        }
+      ]
+    },
+    {
+      weekLabel: "4주차",
+      dateTag: null,
+      items: [
+        {
+          icon: "gift",
+          type: "milestone",
+          title: "수고하셨습니다.",
+          subtitle: "완주!"
+        }
+      ]
+    }
+  ];
+
+  // ====== 여기서만 하드코딩(초기값) ======
+  const [program, setProgram] = useState(() => ({
+    title: "ACT Program",
+    dateStart: null, dateEnd: null, coach: "",
+    weeks: hardCodedWeeks
+  }));
+
+  // 이하 기존 코드 그대로
   const [showWeekSetup, setShowWeekSetup] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [activeTab, setActiveTab] = useState('home');
+  const [showProfile, setShowProfile] = useState(false);
   const route = useLocation();
-
-  // DB에서 프로그램 주차 목록 불러오기
-  const reloadWeeks = async () => {
-    try {
-      const weeks = await api.listProgramWeeks(programMasterId);
-      setProgram(p => ({
-        ...p,
-        weeks: weeks.map(w => ({
-          weekLabel: w.programWeekName,
-          dateTag: w.programWeekDate ? new Date(w.programWeekDate.replace(/\./g, "-")) : null,
-          id: w.id,
-          items: [],
-        }))
-      }));
-    } catch (e) {
-      console.error("DB에서 주차 목록 불러오기 실패:", e);
-    }
-  };
-
-  useEffect(() => {
-    reloadWeeks();
-  }, []);
 
   useEffect(() => saveLS(program), [program]);
   useEffect(() => {
@@ -693,13 +731,16 @@ function AppHome() {
   }, [clientMode]);
   useEffect(() => {
     if (showMenu) setShowMenu(false);
+    if (showProfile) setShowProfile(false);
   }, [route.pathname]);
   useEffect(() => {
     if (showMenu) setShowMenu(false);
+    if (showProfile) setShowProfile(false);
   }, [role]);
 
   const onLogout = () => {
     setShowMenu(false);
+    setShowProfile(false);
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("role");
@@ -727,87 +768,8 @@ function AppHome() {
     }
   };
 
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    if (tab === 'mypage') {
-      console.log('App: Starting exit animation to profile');
-      setIsExiting(true);
-      setTimeout(() => {
-        console.log('App: Navigating to profile');
-        navigate('/profile');
-      }, 300);
-    }
-    // 'home' tab은 이미 홈에 있으므로 아무것도 하지 않음
-  };
-
   return (
-    <>
-      <style>
-        {`
-          .fade-container {
-            opacity: 1;
-            transition: opacity 300ms ease-out;
-          }
-          
-          .fade-container.exiting {
-            opacity: 0;
-          }
-          
-          .animated-gradient {
-            background: linear-gradient(270deg, #DBEAFE, #E5D0FE, #FECACA);
-            background-size: 600% 600%;
-            animation: gradientFlow 8s ease infinite;
-          }
-          
-          @keyframes gradientFlow {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-          }
-        `}
-      </style>
-      
-      <div className={`fade-container ${isExiting ? 'exiting' : ''} mx-auto max-w-full sm:max-w-3xl px-[18px]`}>
-      
-      {/* 프로그램 정보 헤더 */}
-      <div className="animated-gradient rounded-none -mx-[18px] px-6 py-6 mb-6 relative overflow-hidden">
-        <div className="flex justify-between items-start relative">
-          <div className="w-full text-left z-10">
-            <h1 className="text-2xl sm:text-3xl font-bold text-black mb-6">
-              ACT for Burn Out<br />
-              in College<br />
-              Students
-            </h1>
-            <div className="space-y-3">
-              <div className="flex items-center">
-                <div className="bg-white px-4 py-2 rounded-2xl text-sm font-medium text-gray-800 whitespace-nowrap flex items-center w-full">
-                  <CalendarIcon className="w-5 h-5 text-gray-600 mr-3" />
-                  2025.10.21 ~ 2025.11.11
-                </div>
-              </div>
-              <div className="flex items-center">
-                <div className="bg-white px-4 py-2 rounded-2xl text-sm font-medium text-gray-800 whitespace-nowrap flex items-center w-full">
-                  <User className="w-5 h-5 text-gray-600 mr-3" />
-                  김지은 교수님
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* 오른쪽 그래픽 이미지 */}
-          <div className="absolute right-2 top-4 w-40 h-40 sm:w-52 sm:h-52">
-            <img 
-              src="./src/login.png" 
-              alt="프로그램 이미지" 
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
+    <div className="mx-auto max-w-full sm:max-w-3xl px-2 sm:px-4 md:p-4">
       <Toolbar
         clientMode={clientMode}
         setClientMode={setClientMode}
@@ -815,9 +777,9 @@ function AppHome() {
         onLogout={onLogout}
         openWeekSetup={openWeekSetup}
         onOpenMenu={() => setShowMenu(true)}
-        program={program}
-        setProgram={role === "counselor" ? setProgram : undefined}
       />
+
+      <HeaderEditable program={program} setProgram={role === "counselor" ? setProgram : undefined} clientMode={clientMode} />
 
       {role === "counselor" && program.weeks.length === 0 && (
         <div className="rounded-xl sm:rounded-2xl border border-dashed p-4 sm:p-6 text-center text-sm sm:text-base text-gray-500">
@@ -836,7 +798,7 @@ function AppHome() {
               role={role}
               weekIdx={i}
               programMasterId={programMasterId}
-              reloadWeeks={reloadWeeks}
+              reloadWeeks={undefined} // DB 연결 X
             />
           </motion.div>
         ))}
@@ -848,7 +810,7 @@ function AppHome() {
         )}
       </div>
 
-      <footer className="py-6 sm:py-10 text-center text-xs sm:text-sm text-gray-400 mb-16">
+      <footer className="py-6 sm:py-10 text-center text-xs sm:text-sm text-gray-400">
         역할: {role === "counselor" ? "상담사" : "내담자"} • 로컬 저장됨
       </footer>
 
@@ -859,29 +821,11 @@ function AppHome() {
       <HamburgerMenu
         open={showMenu}
         onClose={() => setShowMenu(false)}
-        onOpenProfile={() => {
-          console.log('App: Profile navigation from menu');
-          setShowMenu(false);
-          setIsExiting(true);
-          setTimeout(() => {
-            console.log('App: Navigating to profile from menu');
-            navigate('/profile');
-          }, 300);
-        }}
-        onOpenHome={() => {}} // Already on home page
+        onOpenProfile={() => setShowProfile(true)}
         onLogout={onLogout}
       />
-
-      <BottomNavigation
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        onOpenMenu={() => setShowMenu(true)}
-        onOpenProfile={() => navigate('/profile')}
-        showMenu={showMenu}
-        onCloseMenu={() => setShowMenu(false)}
-      />
-      </div>
-    </>
+      {/* <ProfileSheet open={showProfile} onClose={() => setShowProfile(false)} /> */}
+    </div>
   );
 }
 
@@ -907,7 +851,6 @@ export default function App() {
         <Route path="/vlq-survey" element={<ProtectedRoute><VLQSurvey/></ProtectedRoute>} />
         <Route path="/vlq-result" element={<ProtectedRoute><VLQResult/></ProtectedRoute>} />
         <Route path="/voice-rec" element={<ProtectedRoute><VoiceRec /></ProtectedRoute>} />
-        <Route path="/diary" element={<ProtectedRoute><Diary /></ProtectedRoute>} />
         <Route path="/diary-list" element={<ProtectedRoute><DiaryList /></ProtectedRoute>} />
         <Route path="/diary-view" element={<ProtectedRoute><DiaryView /></ProtectedRoute>} />
         <Route path="/diary-edit" element={<ProtectedRoute><DiaryEdit /></ProtectedRoute>} />
