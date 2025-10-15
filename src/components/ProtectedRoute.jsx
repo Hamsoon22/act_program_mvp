@@ -2,8 +2,8 @@
 import { Navigate, useLocation } from "react-router-dom";
 
 export default function ProtectedRoute({ children, required = "any" }) {
-  // 임시로 인증 체크 비활성화 - 개발용
-  return children;
+  // // 임시로 인증 체크 비활성화 - 개발용
+  // return children;
   
   const token = localStorage.getItem("accessToken");
   const role = localStorage.getItem("role"); // 'counselor' | 'client'
