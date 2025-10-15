@@ -94,6 +94,7 @@ export default function HamburgerMenu({ open, onClose, onOpenProfile, onOpenHome
           <MenuItem to="/" icon={<Home className="w-5 h-5" />} onClose={onClose} onNavigate={handleSpecialNavigation}>홈</MenuItem>
           <MenuItem to="/profile" icon={<UserIcon className="w-5 h-5" />} onClose={onClose} onNavigate={handleSpecialNavigation}>프로필</MenuItem>
           <MenuItem to="/survey" icon={<FileText className="w-5 h-5" />} onClose={onClose}>Rumination Scale</MenuItem>
+          <MenuItem to="/vlq-survey" icon={<FileText className="w-5 h-5" />} onClose={onClose}>Valued Living Questionnaire</MenuItem>
           <MenuItem to="/mbi-survey" icon={<FileText className="w-5 h-5" />} onClose={onClose}>MBI-v.students</MenuItem>
           <MenuItem to="/voice-rec" icon={<Mic className="w-5 h-5" />} onClose={onClose}>목소리 녹음</MenuItem>
           <MenuItem to="/diary-list" icon={<Pencil className="w-5 h-5" />} onClose={onClose}>일기 목록</MenuItem>
