@@ -53,6 +53,21 @@ export const api = {
       credentials: 'include',
     }).then(unwrap);
   },
+  
+  // ✅ 사용자 정보 조회 (/api/user/v1/mypage)
+  getUserProfile() {
+    return request('/api/user/v1/mypage').then(unwrap);
+    // unwrap을 쓰면 data만 반환됨
+    // { loginId, userName, email, timeZone, language, description }
+  },
+
+  // ✅ 사용자 정보 수정 (이름 변경 등)
+  updateUserProfile({ userName }) {
+    return request('/api/user/v1/mypage', {
+      method: 'PATCH',
+      body: JSON.stringify({ userName }),
+    }).then(unwrap);
+  },
 
   /* ---------- User Diary ---------- */
 
