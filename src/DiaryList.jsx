@@ -24,7 +24,41 @@ export default function DiaryList() {
   // 로컬스토리지에서 일기 목록 가져오기
   useEffect(() => {
     const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
-    setDiaries(savedDiaries);
+    
+    // 샘플 일기 데이터
+    const sampleDiary = {
+      id: 'sample',
+      title: '샘플 일기',
+      content: `오늘은 정말 좋은 하루였다. 아침에 일어나서 창밖을 보니 햇살이 너무 따뜻했다.
+
+점심에는 친구들과 함께 맛있는 음식을 먹었고, 오후에는 공원을 산책했다. 저녁에는 가족들과 함께 영화를 보며 즐거운 시간을 보냈다.
+
+내일도 이런 좋은 하루가 되었으면 좋겠다.
+
+오늘 하루를 돌아보면서 느낀 것은, 작은 일상의 소중함이다. 평범해 보이는 순간들이 모여서 행복한 하루를 만든다는 것을 깨달았다.
+
+아침에 마신 따뜻한 커피 한 잔, 길에서 만난 고양이의 귀여운 모습, 친구와 나눈 즐거운 대화, 가족과 함께 보낸 편안한 시간 등 모든 것이 소중한 추억이 되었다.
+
+이런 일상의 소중함을 잊지 않고 살아가야겠다고 다짐했다. 매일매일이 특별한 의미를 가질 수 있도록 더욱 감사하는 마음으로 살아가야겠다.
+
+내일은 또 어떤 새로운 일들이 기다리고 있을까? 기대가 된다.
+
+오늘도 감사한 하루였다. 이런 평범하지만 소중한 일상이 계속되었으면 좋겠다.
+
+끝으로, 이 일기를 읽는 미래의 나에게 하고 싶은 말은, 항상 지금의 감사한 마음을 잊지 말라는 것이다. 어떤 어려움이 와도 이런 작은 행복들을 기억하며 힘내길 바란다.`,
+      date: '2024년 1월 1일',
+      time: '오후 6:30',
+      backgroundColor: '#FFF8E7',
+      isSample: true
+    };
+    
+    // 샘플 일기가 없으면 추가
+    const hasample = savedDiaries.some(diary => diary.isSample);
+    if (!hasample) {
+      setDiaries([sampleDiary, ...savedDiaries]);
+    } else {
+      setDiaries(savedDiaries);
+    }
   }, []);
 
   // 스크롤 이벤트

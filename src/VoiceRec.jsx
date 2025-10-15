@@ -12,15 +12,7 @@ export default function VoiceRec() {
   const [scrolled, setScrolled] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [recordings, setRecordings] = useState([
-    {
-      id: 'sample',
-      name: '샘플 녹음',
-      date: '2024-01-01 12:00',
-      duration: 30,
-      isSample: true
-    }
-  ]); // 녹음 내역 상태
+  const [recordings, setRecordings] = useState([]); // 녹음 내역 상태
   const [isRecording, setIsRecording] = useState(false); // 녹음 상태
   const [recordingTime, setRecordingTime] = useState(0); // 녹음 시간 (초)
   const [showRecordingModal, setShowRecordingModal] = useState(false); // 녹음 모달 표시
@@ -311,12 +303,6 @@ export default function VoiceRec() {
   const handlePlayRecording = (recording) => {
     console.log('재생 시도:', recording);
     
-    // 샘플 녹음은 재생할 수 없음
-    if (recording.isSample) {
-      console.log('샘플 녹음은 재생할 수 없습니다');
-      return;
-    }
-    
     // 기존 오디오가 재생 중이면 먼저 정지
     if (currentAudio) {
       currentAudio.pause();
@@ -518,13 +504,6 @@ export default function VoiceRec() {
   };
 
   const handleDelete = (recordingId) => {
-    // 샘플 녹음은 삭제할 수 없음
-    const recordingToDelete = recordings.find(r => r.id === recordingId);
-    if (recordingToDelete && recordingToDelete.isSample) {
-      console.log('샘플 녹음은 삭제할 수 없습니다');
-      return;
-    }
-    
     if (window.confirm('이 녹음을 삭제하시겠습니까?')) {
       setRecordings(prev => prev.filter(recording => recording.id !== recordingId));
       
@@ -580,15 +559,16 @@ export default function VoiceRec() {
         classNames="page"
         appear
       >
-        <Box sx={{
-          transform: isVisible && !isExiting ? 'translateX(0)' : 'translateX(100%)',
+                <Box sx={{ 
           opacity: isVisible && !isExiting ? 1 : 0,
           transition: 'all 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
           margin: 0, 
           padding: 0,
           width: '100%',
           minHeight: '100vh',
-          backgroundColor: 'white'
+          backgroundColor: 'white',
+          overflowX: 'hidden',
+          maxWidth: '100vw'
         }}>
           {/* 헤더 */}
           <AppBar 
@@ -642,7 +622,13 @@ export default function VoiceRec() {
             </Toolbar>
           </AppBar>
 
-          <Container maxWidth="sm" sx={{ py: 2, pb: 12 }}>
+          <Container maxWidth="sm" sx={{ 
+            py: 2, 
+            pb: 12,
+            overflowX: 'hidden',
+            width: '100%',
+            maxWidth: '100vw'
+          }}>
             {recordings.length === 0 ? (
               // 녹음 내역이 없을 때 표시 (중앙 정렬)
               <Box sx={{ 
@@ -690,7 +676,10 @@ export default function VoiceRec() {
               </Box>
             ) : (
               // 녹음 내역이 있을 때 표시할 리스트 (상단부터)
-              <Box sx={{ width: '100%' }}>
+              <Box sx={{ 
+                width: '100%',
+                overflowX: 'hidden'
+              }}>
                 {recordings.map((recording, index) => (
                   <Box key={recording.id} sx={{ 
                     mb: 2,                        // 하단 마진
@@ -699,22 +688,25 @@ export default function VoiceRec() {
                     borderRadius: 5,             // 모서리 둥글기
                     display: 'flex',             // 플렉스 레이아웃
                     alignItems: 'center',        // 세로 중앙 정렬
-                    gap: 2                       // 요소 간 간격
+                    gap: 2,                      // 요소 간 간격
+                    width: '100%',
+                    maxWidth: '100%',
+                    overflowX: 'hidden'
                   }}>
                     {/* 재생 버튼 (왼쪽) */}
                     <IconButton
                       onClick={() => handlePlayRecording(recording)}
-                      disabled={recording.isSample || (playingId === recording.id && currentAudio && !currentAudio.paused)}
+                      disabled={playingId === recording.id && currentAudio && !currentAudio.paused}
                       sx={{
-                        backgroundColor: recording.isSample ? '#ccc' : (playingId === recording.id ? '#c53030' : '#333'),
+                        backgroundColor: playingId === recording.id ? '#c53030' : '#333',
                         color: 'white',
                         width: 48,
                         height: 48,
                         '&:hover': {
-                          backgroundColor: recording.isSample ? '#ccc' : (playingId === recording.id ? '#a02626' : '#555')
+                          backgroundColor: playingId === recording.id ? '#a02626' : '#555'
                         },
                         '&:disabled': {
-                          backgroundColor: recording.isSample ? '#ccc' : '#c53030',
+                          backgroundColor: '#c53030',
                           color: 'white'
                         }
                       }}
@@ -726,31 +718,40 @@ export default function VoiceRec() {
                     </IconButton>
 
                     {/* 녹음 정보 (중앙) */}
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                        {recording.isSample ? recording.name : `녹음 ${recording.number}`}
-                        {recording.isSample && (
-                          <Typography component="span" sx={{ color: '#999', fontSize: '12px', ml: 1 }}>
-                            (샘플)
-                          </Typography>
-                        )}
+                    <Box sx={{ 
+                      flex: 1,
+                      minWidth: 0,
+                      overflow: 'hidden'
+                    }}>
+                      <Typography variant="body1" sx={{ 
+                        fontWeight: 'bold', 
+                        mb: 0.5,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        녹음 {recording.number}
                       </Typography>
-                      <Typography variant="body2" sx={{ color: '#666', fontSize: '12px' }}>
+                      <Typography variant="body2" sx={{ 
+                        color: '#666', 
+                        fontSize: '12px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
                         {recording.date} • {Math.floor(recording.duration / 60)}:{(recording.duration % 60).toString().padStart(2, '0')}
                       </Typography>
                     </Box>
                     
                     {/* 더보기 버튼 (오른쪽) */}
-                    {!recording.isSample && (
-                      <IconButton
-                        onClick={(e) => handleMoreClick(e, recording.id)}
-                        sx={{
-                          color: '#666'
-                        }}
-                      >
-                        <MoreVert />
-                      </IconButton>
-                    )}
+                    <IconButton
+                      onClick={(e) => handleMoreClick(e, recording.id)}
+                      sx={{
+                        color: '#666'
+                      }}
+                    >
+                      <MoreVert />
+                    </IconButton>
                   </Box>
                 ))}
               </Box>
@@ -759,46 +760,46 @@ export default function VoiceRec() {
         </Box>
       </CSSTransition>
 
-      {/* 고정된 하단 버튼 - CSSTransition 바깥에 위치 */}
+      {/* 하단 녹음 시작 버튼 */}
       {!showRecordingModal && (
-        <Box sx={{ 
-          position: 'fixed', 
-          bottom: '4%', 
-          left: '5%', 
-          right: '5%', 
-          display: 'flex',
-          justifyContent: 'center',
-          p: 0,
-          backgroundColor: 'rgba(184, 0, 0, 0)',
-          zIndex: 9999,
-          transform: 'translateZ(0)'
+        <Box sx={{
+          position: 'fixed',
+          bottom: 20,
+          left: 0,
+          right: 0,
+          px: 3,
+          zIndex: 1000
         }}>
           <Button
             variant="contained"
             size="large"
-            startIcon={<Mic sx={{ fontSize: '24px' }} />}
-            onClick={() => {
-              handleStartRecording();
-            }}
-            sx={{ 
+            startIcon={<Mic />}
+            onClick={handleStartRecording}
+            sx={{
               width: '100%',
-              height: '3.625rem',
-              flexShrink: 0,
+              maxWidth: 'sm',
+              mx: 'auto',
+              height: 56,
               backgroundColor: '#D1052E',
+              color: 'white',
               fontSize: '1.1rem',
               fontWeight: 'bold',
-              borderRadius: 50,
-              boxShadow: '0 4px 12px rgba(27, 31, 39, 0.3)',
+              borderRadius: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'row',
+              gap: 1,
               '& .MuiButton-startIcon': {
-                marginRight: '12px'
+                marginRight: '8px',
+                marginLeft: 0
               },
               '&:hover': {
-                backgroundColor: '#2A2F38',
-                boxShadow: '0 6px 16px rgba(27, 31, 39, 0.4)',
-              },
+                backgroundColor: '#B8041A'
+              }
             }}
           >
-          녹음 시작
+            녹음 시작
           </Button>
         </Box>
       )}
