@@ -69,6 +69,23 @@ export const api = {
     }).then(unwrap);
   },
 
+   // 일반 비밀번호 변경
+   changePassword({ oldPassword, newPassword }) {
+    // 반드시 query string으로 보내야 함
+    const params = new URLSearchParams({ oldPassword, newPassword }).toString();
+    return request(`/api/user/v1/mypage/password?${params}`, {
+      method: 'PUT'
+    }).then(unwrap);
+  },
+
+  // 최초 비밀번호 변경
+  changeFirstPassword({ newPassword }) {
+    const params = new URLSearchParams({ newPassword }).toString();
+    return request(`/api/user/v1/mypage/password-first?${params}`, {
+      method: 'PUT'
+    }).then(unwrap);
+  },
+
   /* ---------- User Diary ---------- */
 
   listDiaries() {

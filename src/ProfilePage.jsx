@@ -8,7 +8,7 @@ import {
   Container, Typography, Box, AppBar, Toolbar
 } from '@mui/material';
 import profileIcon from './profile.svg';
-import { api } from "./lib/api"; // 위에서 만든 api.js import 경로에 맞게 수정
+import { api } from "./lib/api"; // 경로에 맞게 수정
 
 export default function ProfilePage() {
     const navigate = useNavigate();
@@ -26,24 +26,31 @@ export default function ProfilePage() {
     const [showMenu, setShowMenu] = useState(false);
     const [activeTab, setActiveTab] = useState('mypage');
     const [isExiting, setIsExiting] = useState(false);
+
+    // 비밀번호 변경 관련
+    const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [passwordError, setPasswordError] = useState('');
+    const [passwordSuccess, setPasswordSuccess] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const fileRef = useRef(null);
 
-    // id만 불러오기
     useEffect(() => {
         const fetchUserId = async () => {
             setLoading(true);
             setError("");
             try {
-                // api.getUserProfile()은 { loginId, userName, email, timeZone, language, description } 반환
                 const data = await api.getUserProfile();
                 setForm(f => ({
                     ...f,
-                    loginId: data.loginId || ""
+                    loginId: data.loginId || "",
+                    userName: data.userName || "",
+                    email: data.email || "",
+                    description: data.description || "",
+                    timeZone: data.timeZone || "",
+                    language: data.language || "",
                 }));
             } catch (err) {
                 setError(err.message || "에러가 발생했습니다.");
@@ -62,23 +69,13 @@ export default function ProfilePage() {
 
     const onPasswordChange = (e) => {
         const { name, value } = e.target;
-        if (name === 'newPassword') {
-            setNewPassword(value);
-            if (confirmPassword && value !== confirmPassword) {
-                setPasswordError('비밀번호가 일치하지 않습니다');
-            } else {
-                setPasswordError('');
-            }
-        } else if (name === 'confirmPassword') {
-            setConfirmPassword(value);
-            if (newPassword && value !== newPassword) {
-                setPasswordError('비밀번호가 일치하지 않습니다');
-            } else {
-                setPasswordError('');
-            }
-        }
-        setSaved(false);
+        if (name === 'oldPassword') setOldPassword(value);
+        if (name === 'newPassword') setNewPassword(value);
+        if (name === 'confirmPassword') setConfirmPassword(value);
+        setPasswordError('');
+        setPasswordSuccess('');
     };
+
     const onPickFile = () => fileRef.current?.click();
     const onFile = (e) => {
         const file = e.target.files?.[0];
@@ -88,26 +85,12 @@ export default function ProfilePage() {
         reader.readAsDataURL(file);
         setSaved(false);
     };
+
+    // 프로필 저장
     const onSubmit = async (e) => {
         e.preventDefault();
-        if (newPassword || confirmPassword) {
-            if (newPassword !== confirmPassword) {
-                setPasswordError('비밀번호가 일치하지 않습니다');
-                return;
-            }
-            if (newPassword.length < 6) {
-                setPasswordError('비밀번호는 6자 이상이어야 합니다');
-                return;
-            }
-        }
-        setPasswordError('');
-        setUser(form);
-        setSaved(true);
-        if (newPassword) {
-            setNewPassword('');
-            setConfirmPassword('');
-        }
-        // 서버에 회원정보 수정 요청 (PUT)
+        setError('');
+        setSaved(false);
         try {
             await api.updateUserProfile({
                 email: form.email,
@@ -116,9 +99,38 @@ export default function ProfilePage() {
                 timeZone: form.timeZone,
                 language: form.language
             });
+            setUser(form);
             setSaved(true);
         } catch (err) {
             setError("회원정보 저장 중 오류가 발생했습니다.");
+        }
+    };
+
+    // 비밀번호 변경 (저장 버튼과 별도 동작)
+    const onPasswordSubmit = async () => {
+        setPasswordError('');
+        setPasswordSuccess('');
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            setPasswordError("모든 비밀번호 항목을 입력하세요.");
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            setPasswordError('새 비밀번호와 확인이 일치하지 않습니다.');
+            return;
+        }
+        // 정규식 체크: ^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&()+])[A-Za-z\d!@#$%^&*()+]{8,20}$
+        if (!/^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&()+])[A-Za-z\d!@#$%^&*()+]{8,20}$/.test(newPassword)) {
+            setPasswordError('비밀번호는 영문+숫자+특수문자 포함 8~20자여야 합니다.');
+            return;
+        }
+        try {
+            await api.changePassword({ oldPassword, newPassword });
+            setPasswordSuccess("비밀번호가 성공적으로 변경되었습니다.");
+            setOldPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (err) {
+            setPasswordError("비밀번호 변경 실패: " + (err.message || ""));
         }
     };
 
@@ -219,37 +231,43 @@ export default function ProfilePage() {
                         </div>
                         <div className="grid gap-2">
                             <label className="text-sm text-slate-600 font-medium">아이디</label>
-                            {/* 서버에서 받아온 loginId만 표시 (수정 불가, disabled) */}
                             <input name="loginId" value={form.loginId || ""} disabled className="rounded-xl border border-slate-200 px-4 py-3 bg-slate-50 text-slate-500 cursor-not-allowed" placeholder="아이디" />
                         </div>
-                        <div className="grid gap-2">
+                        <div className="grid gap-2 mt-6 mb-2">
                             <label className="text-sm text-slate-600 font-medium">비밀번호 변경</label>
-                            <input 
-                                type="password" 
-                                name="newPassword" 
+                            <input
+                                type="password"
+                                name="oldPassword"
+                                value={oldPassword}
+                                onChange={onPasswordChange}
+                                className="rounded-xl border border-slate-200 px-4 py-3"
+                                placeholder="현재 비밀번호"
+                            />
+                            <input
+                                type="password"
+                                name="newPassword"
                                 value={newPassword}
                                 onChange={onPasswordChange}
-                                className={`rounded-xl border px-4 py-3 focus:outline-none focus:ring-2 ${
-                                    passwordError ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 focus:ring-blue-500'
-                                }`}
-                                placeholder="새 비밀번호" 
+                                className="rounded-xl border border-slate-200 px-4 py-3"
+                                placeholder="새 비밀번호"
                             />
-                        </div>
-                        <div className="grid gap-2">
-                            <label className="text-sm text-slate-600 font-medium">비밀번호 확인</label>
-                            <input 
-                                type="password" 
-                                name="confirmPassword" 
+                            <input
+                                type="password"
+                                name="confirmPassword"
                                 value={confirmPassword}
                                 onChange={onPasswordChange}
-                                className={`rounded-xl border px-4 py-3 focus:outline-none focus:ring-2 ${
-                                    passwordError ? 'border-red-300 focus:ring-red-500' : 'border-slate-200 focus:ring-blue-500'
-                                }`}
-                                placeholder="새 비밀번호 재입력" 
+                                className="rounded-xl border border-slate-200 px-4 py-3"
+                                placeholder="새 비밀번호 확인"
                             />
-                            {passwordError && (
-                                <p className="text-sm text-red-500 mt-1">{passwordError}</p>
-                            )}
+                            <button
+                                type="button"
+                                className="w-full inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 bg-blue-700 text-white hover:bg-blue-600 transition-colors mt-2"
+                                onClick={onPasswordSubmit}
+                            >
+                                비밀번호 변경
+                            </button>
+                            {passwordError && <p className="text-red-600 text-sm">{passwordError}</p>}
+                            {passwordSuccess && <p className="text-green-600 text-sm">{passwordSuccess}</p>}
                         </div>
                         <div className="grid gap-2">
                             <label className="text-sm text-slate-600 font-medium">이메일</label>
