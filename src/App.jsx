@@ -27,6 +27,8 @@ import DiaryList from "./DiaryList";
 import DiaryView from "./DiaryView";
 import DiaryEdit from "./DiaryEdit";
 import LeafShip from "./LeafShip";
+import VLQSurvey from "./VLQSurvey";
+import VLQResult from "./VLQResult";
 
 /* ========== UI SHIMS ========== */
 const Button = ({ className = "", variant = "default", ...props }) => (
@@ -902,6 +904,8 @@ export default function App() {
         <Route path="/result" element={<ProtectedRoute><ResultPage /></ProtectedRoute>} />
         <Route path="/mbi-survey" element={<ProtectedRoute><MBISurvey /></ProtectedRoute>} />
         <Route path="/mbi-result" element={<ProtectedRoute><MBIResultPage /></ProtectedRoute>} />
+        <Route path="/vlq-survey" element={<ProtectedRoute><VLQSurvey/></ProtectedRoute>} />
+        <Route path="/vlq-result" element={<ProtectedRoute><VLQResult/></ProtectedRoute>} />
         <Route path="/voice-rec" element={<ProtectedRoute><VoiceRec /></ProtectedRoute>} />
         <Route path="/diary" element={<ProtectedRoute><Diary /></ProtectedRoute>} />
         <Route path="/diary-list" element={<ProtectedRoute><DiaryList /></ProtectedRoute>} />
