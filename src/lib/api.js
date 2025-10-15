@@ -53,6 +53,38 @@ export const api = {
       credentials: 'include',
     }).then(unwrap);
   },
+  
+  // ✅ 사용자 정보 조회 (/api/user/v1/mypage)
+  getUserProfile() {
+    return request('/api/user/v1/mypage').then(unwrap);
+    // unwrap을 쓰면 data만 반환됨
+    // { loginId, userName, email, timeZone, language, description }
+  },
+
+  // ✅ 사용자 정보 수정 (이름 변경 등)
+  updateUserProfile({ userName }) {
+    return request('/api/user/v1/mypage', {
+      method: 'PATCH',
+      body: JSON.stringify({ userName }),
+    }).then(unwrap);
+  },
+
+   // 일반 비밀번호 변경
+   changePassword({ oldPassword, newPassword }) {
+    // 반드시 query string으로 보내야 함
+    const params = new URLSearchParams({ oldPassword, newPassword }).toString();
+    return request(`/api/user/v1/mypage/password?${params}`, {
+      method: 'PUT'
+    }).then(unwrap);
+  },
+
+  // 최초 비밀번호 변경
+  changeFirstPassword({ newPassword }) {
+    const params = new URLSearchParams({ newPassword }).toString();
+    return request(`/api/user/v1/mypage/password-first?${params}`, {
+      method: 'PUT'
+    }).then(unwrap);
+  },
 
   /* ---------- User Diary ---------- */
 
