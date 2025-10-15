@@ -640,6 +640,8 @@ function AppHome() {
   const [program, setProgram] = useState(() => emptyProgram());
   const [isExiting, setIsExiting] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  
+  // 정상적인 역할 관리
   const role = localStorage.getItem("role"); // 'counselor' | 'client' | null
 
   // 실제로는 프로그램 마스터 선택/추가 UI에서 받아와야 함
@@ -748,10 +750,62 @@ function AppHome() {
           .fade-container.exiting {
             opacity: 0;
           }
+          
+          .animated-gradient {
+            background: linear-gradient(270deg, #DBEAFE, #E5D0FE, #FECACA);
+            background-size: 600% 600%;
+            animation: gradientFlow 8s ease infinite;
+          }
+          
+          @keyframes gradientFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+          }
         `}
       </style>
       
       <div className={`fade-container ${isExiting ? 'exiting' : ''} mx-auto max-w-full sm:max-w-3xl px-[18px]`}>
+      
+      {/* 프로그램 정보 헤더 */}
+      <div className="animated-gradient rounded-none -mx-[18px] px-6 py-6 mb-6 relative overflow-hidden">
+        <div className="flex justify-between items-start relative">
+          <div className="w-full text-left z-10">
+            <h1 className="text-2xl sm:text-3xl font-bold text-black mb-6">
+              ACT for Burn Out<br />
+              in College<br />
+              Students
+            </h1>
+            <div className="space-y-3">
+              <div className="flex items-center">
+                <div className="bg-white px-4 py-2 rounded-2xl text-sm font-medium text-gray-800 whitespace-nowrap flex items-center w-full">
+                  <CalendarIcon className="w-5 h-5 text-gray-600 mr-3" />
+                  2025.10.21 ~ 2025.11.11
+                </div>
+              </div>
+              <div className="flex items-center">
+                <div className="bg-white px-4 py-2 rounded-2xl text-sm font-medium text-gray-800 whitespace-nowrap flex items-center w-full">
+                  <User className="w-5 h-5 text-gray-600 mr-3" />
+                  김지은 교수님
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* 오른쪽 그래픽 이미지 */}
+          <div className="absolute right-2 top-4 w-40 h-40 sm:w-52 sm:h-52">
+            <img 
+              src="./src/login.png" 
+              alt="프로그램 이미지" 
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
       <Toolbar
         clientMode={clientMode}
         setClientMode={setClientMode}

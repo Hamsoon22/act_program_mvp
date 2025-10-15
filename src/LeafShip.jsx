@@ -108,7 +108,7 @@ export default function LeafShip() {
               transition: 'opacity 0.5s ease-in-out'
             }}
           >
-            <source src="/act_program_mvp/leaf.mp4" type="video/mp4" />
+            <source src="/act_program_mvp/leaf_v2.mp4" type="video/mp4" />
           </video>
 
           {/* 기본 배경 (영상이 로드되기 전) */}

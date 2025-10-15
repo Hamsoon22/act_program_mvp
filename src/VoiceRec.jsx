@@ -24,6 +24,7 @@ export default function VoiceRec() {
   const [recordedChunks, setRecordedChunks] = useState([]); // 녹음된 오디오 데이터
   const [playingId, setPlayingId] = useState(null); // 현재 재생 중인 녹음 ID
   const [currentAudio, setCurrentAudio] = useState(null); // 현재 재생 중인 Audio 객체
+  const [isPaused, setIsPaused] = useState(false); // 일시정지 상태
   const [anchorEl, setAnchorEl] = useState(null); // 더보기 메뉴 앵커
   const [selectedRecordingId, setSelectedRecordingId] = useState(null); // 선택된 녹음 ID
   const [recordingCounter, setRecordingCounter] = useState(1); // 녹음 순서 카운터
@@ -301,7 +302,24 @@ export default function VoiceRec() {
   };
 
   const handlePlayRecording = (recording) => {
-    console.log('재생 시도:', recording);
+    console.log('재생/일시정지 시도:', recording);
+    
+    // 현재 재생 중인 녹음과 같은 녹음을 클릭한 경우
+    if (playingId === recording.id && currentAudio) {
+      if (currentAudio.paused) {
+        // 일시정지 상태면 재생
+        currentAudio.play().catch(err => {
+          console.error('재생 실패:', err);
+          setPlayingId(null);
+          setCurrentAudio(null);
+          alert('재생에 실패했습니다. 다시 시도해주세요.');
+        });
+      } else {
+        // 재생 중이면 일시정지
+        currentAudio.pause();
+      }
+      return;
+    }
     
     // 기존 오디오가 재생 중이면 먼저 정지
     if (currentAudio) {
@@ -309,11 +327,7 @@ export default function VoiceRec() {
       currentAudio.currentTime = 0;
       setCurrentAudio(null);
       setPlayingId(null);
-    }
-    
-    if (playingId === recording.id) {
-      // 같은 녹음을 다시 클릭하면 정지
-      return;
+      setIsPaused(false);
     }
     
     try {
@@ -340,12 +354,19 @@ export default function VoiceRec() {
         console.log('재생 시작됨');
         setPlayingId(recording.id);
         setCurrentAudio(audio);
+        setIsPaused(false);
+      });
+      
+      audio.addEventListener('pause', () => {
+        console.log('재생 일시정지됨');
+        setIsPaused(true);
       });
       
       audio.addEventListener('ended', () => {
         console.log('재생 종료');
         setPlayingId(null);
         setCurrentAudio(null);
+        setIsPaused(false);
       });
       
       audio.addEventListener('error', (e) => {
@@ -696,7 +717,6 @@ export default function VoiceRec() {
                     {/* 재생 버튼 (왼쪽) */}
                     <IconButton
                       onClick={() => handlePlayRecording(recording)}
-                      disabled={playingId === recording.id && currentAudio && !currentAudio.paused}
                       sx={{
                         backgroundColor: playingId === recording.id ? '#c53030' : '#333',
                         color: 'white',
@@ -704,14 +724,10 @@ export default function VoiceRec() {
                         height: 48,
                         '&:hover': {
                           backgroundColor: playingId === recording.id ? '#a02626' : '#555'
-                        },
-                        '&:disabled': {
-                          backgroundColor: '#c53030',
-                          color: 'white'
                         }
                       }}
                     >
-                      {playingId === recording.id ? 
+                      {(playingId === recording.id && !isPaused) ? 
                         <Pause sx={{ fontSize: 20 }} /> : 
                         <PlayArrow sx={{ fontSize: 20 }} />
                       }
