@@ -24,6 +24,7 @@ export default function VoiceRec() {
   const [recordedChunks, setRecordedChunks] = useState([]); // 녹음된 오디오 데이터
   const [playingId, setPlayingId] = useState(null); // 현재 재생 중인 녹음 ID
   const [currentAudio, setCurrentAudio] = useState(null); // 현재 재생 중인 Audio 객체
+  const [isPaused, setIsPaused] = useState(false); // 일시정지 상태
   const [anchorEl, setAnchorEl] = useState(null); // 더보기 메뉴 앵커
   const [selectedRecordingId, setSelectedRecordingId] = useState(null); // 선택된 녹음 ID
   const [recordingCounter, setRecordingCounter] = useState(1); // 녹음 순서 카운터
@@ -301,7 +302,24 @@ export default function VoiceRec() {
   };
 
   const handlePlayRecording = (recording) => {
-    console.log('재생 시도:', recording);
+    console.log('재생/일시정지 시도:', recording);
+    
+    // 현재 재생 중인 녹음과 같은 녹음을 클릭한 경우
+    if (playingId === recording.id && currentAudio) {
+      if (currentAudio.paused) {
+        // 일시정지 상태면 재생
+        currentAudio.play().catch(err => {
+          console.error('재생 실패:', err);
+          setPlayingId(null);
+          setCurrentAudio(null);
+          alert('재생에 실패했습니다. 다시 시도해주세요.');
+        });
+      } else {
+        // 재생 중이면 일시정지
+        currentAudio.pause();
+      }
+      return;
+    }
     
     // 기존 오디오가 재생 중이면 먼저 정지
     if (currentAudio) {
@@ -309,11 +327,7 @@ export default function VoiceRec() {
       currentAudio.currentTime = 0;
       setCurrentAudio(null);
       setPlayingId(null);
-    }
-    
-    if (playingId === recording.id) {
-      // 같은 녹음을 다시 클릭하면 정지
-      return;
+      setIsPaused(false);
     }
     
     try {
@@ -340,12 +354,19 @@ export default function VoiceRec() {
         console.log('재생 시작됨');
         setPlayingId(recording.id);
         setCurrentAudio(audio);
+        setIsPaused(false);
+      });
+      
+      audio.addEventListener('pause', () => {
+        console.log('재생 일시정지됨');
+        setIsPaused(true);
       });
       
       audio.addEventListener('ended', () => {
         console.log('재생 종료');
         setPlayingId(null);
         setCurrentAudio(null);
+        setIsPaused(false);
       });
       
       audio.addEventListener('error', (e) => {
@@ -559,15 +580,16 @@ export default function VoiceRec() {
         classNames="page"
         appear
       >
-        <Box sx={{
-          transform: isVisible && !isExiting ? 'translateX(0)' : 'translateX(100%)',
+                <Box sx={{ 
           opacity: isVisible && !isExiting ? 1 : 0,
           transition: 'all 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
           margin: 0, 
           padding: 0,
           width: '100%',
           minHeight: '100vh',
-          backgroundColor: 'white'
+          backgroundColor: 'white',
+          overflowX: 'hidden',
+          maxWidth: '100vw'
         }}>
           {/* 헤더 */}
           <AppBar 
@@ -621,7 +643,13 @@ export default function VoiceRec() {
             </Toolbar>
           </AppBar>
 
-          <Container maxWidth="sm" sx={{ py: 2, pb: 12 }}>
+          <Container maxWidth="sm" sx={{ 
+            py: 2, 
+            pb: 12,
+            overflowX: 'hidden',
+            width: '100%',
+            maxWidth: '100vw'
+          }}>
             {recordings.length === 0 ? (
               // 녹음 내역이 없을 때 표시 (중앙 정렬)
               <Box sx={{ 
@@ -669,7 +697,10 @@ export default function VoiceRec() {
               </Box>
             ) : (
               // 녹음 내역이 있을 때 표시할 리스트 (상단부터)
-              <Box sx={{ width: '100%' }}>
+              <Box sx={{ 
+                width: '100%',
+                overflowX: 'hidden'
+              }}>
                 {recordings.map((recording, index) => (
                   <Box key={recording.id} sx={{ 
                     mb: 2,                        // 하단 마진
@@ -678,12 +709,14 @@ export default function VoiceRec() {
                     borderRadius: 5,             // 모서리 둥글기
                     display: 'flex',             // 플렉스 레이아웃
                     alignItems: 'center',        // 세로 중앙 정렬
-                    gap: 2                       // 요소 간 간격
+                    gap: 2,                      // 요소 간 간격
+                    width: '100%',
+                    maxWidth: '100%',
+                    overflowX: 'hidden'
                   }}>
                     {/* 재생 버튼 (왼쪽) */}
                     <IconButton
                       onClick={() => handlePlayRecording(recording)}
-                      disabled={playingId === recording.id && currentAudio && !currentAudio.paused}
                       sx={{
                         backgroundColor: playingId === recording.id ? '#c53030' : '#333',
                         color: 'white',
@@ -691,25 +724,37 @@ export default function VoiceRec() {
                         height: 48,
                         '&:hover': {
                           backgroundColor: playingId === recording.id ? '#a02626' : '#555'
-                        },
-                        '&:disabled': {
-                          backgroundColor: '#c53030',
-                          color: 'white'
                         }
                       }}
                     >
-                      {playingId === recording.id ? 
+                      {(playingId === recording.id && !isPaused) ? 
                         <Pause sx={{ fontSize: 20 }} /> : 
                         <PlayArrow sx={{ fontSize: 20 }} />
                       }
                     </IconButton>
 
                     {/* 녹음 정보 (중앙) */}
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                    <Box sx={{ 
+                      flex: 1,
+                      minWidth: 0,
+                      overflow: 'hidden'
+                    }}>
+                      <Typography variant="body1" sx={{ 
+                        fontWeight: 'bold', 
+                        mb: 0.5,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
                         녹음 {recording.number}
                       </Typography>
-                      <Typography variant="body2" sx={{ color: '#666', fontSize: '12px' }}>
+                      <Typography variant="body2" sx={{ 
+                        color: '#666', 
+                        fontSize: '12px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
                         {recording.date} • {Math.floor(recording.duration / 60)}:{(recording.duration % 60).toString().padStart(2, '0')}
                       </Typography>
                     </Box>
@@ -731,46 +776,46 @@ export default function VoiceRec() {
         </Box>
       </CSSTransition>
 
-      {/* 고정된 하단 버튼 - CSSTransition 바깥에 위치 */}
+      {/* 하단 녹음 시작 버튼 */}
       {!showRecordingModal && (
-        <Box sx={{ 
-          position: 'fixed', 
-          bottom: '4%', 
-          left: '5%', 
-          right: '5%', 
-          display: 'flex',
-          justifyContent: 'center',
-          p: 0,
-          backgroundColor: 'rgba(184, 0, 0, 0)',
-          zIndex: 9999,
-          transform: 'translateZ(0)'
+        <Box sx={{
+          position: 'fixed',
+          bottom: 20,
+          left: 0,
+          right: 0,
+          px: 3,
+          zIndex: 1000
         }}>
           <Button
             variant="contained"
             size="large"
-            startIcon={<Mic sx={{ fontSize: '24px' }} />}
-            onClick={() => {
-              handleStartRecording();
-            }}
-            sx={{ 
+            startIcon={<Mic />}
+            onClick={handleStartRecording}
+            sx={{
               width: '100%',
-              height: '3.625rem',
-              flexShrink: 0,
+              maxWidth: 'sm',
+              mx: 'auto',
+              height: 56,
               backgroundColor: '#D1052E',
+              color: 'white',
               fontSize: '1.1rem',
               fontWeight: 'bold',
-              borderRadius: 50,
-              boxShadow: '0 4px 12px rgba(27, 31, 39, 0.3)',
+              borderRadius: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'row',
+              gap: 1,
               '& .MuiButton-startIcon': {
-                marginRight: '12px'
+                marginRight: '8px',
+                marginLeft: 0
               },
               '&:hover': {
-                backgroundColor: '#2A2F38',
-                boxShadow: '0 6px 16px rgba(27, 31, 39, 0.4)',
-              },
+                backgroundColor: '#B8041A'
+              }
             }}
           >
-          녹음 시작
+            녹음 시작
           </Button>
         </Box>
       )}

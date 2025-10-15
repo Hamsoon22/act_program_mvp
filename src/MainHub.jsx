@@ -1,18 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
   Button,
   Box,
-  Paper
+  Paper,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { api } from './lib/api';
 
 export default function MainHub() {
   const navigate = useNavigate();
+  const [programMasters, setProgramMasters] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // 프로그램 마스터 목록 불러오기
+  useEffect(() => {
+    const loadProgramMasters = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const masters = await api.listProgramMasters();
+        setProgramMasters(masters || []);
+      } catch (err) {
+        console.error('프로그램 마스터 로드 실패:', err);
+        setError('프로그램을 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProgramMasters();
+  }, []);
 
   return (
-    <Container maxWidth="sm" sx={{ py: 4 }}>
+    <Container maxWidth="sm" sx={{ py: 4, display: 'none' }}>
       <Box sx={{ textAlign: 'center', mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2, color: '#1B1F27' }}>
          임시 허브 페이지 
@@ -68,7 +93,7 @@ export default function MainHub() {
           >
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                MBI
+                MBI-v.students
               </Typography>
           
             </Box>

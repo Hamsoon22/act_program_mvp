@@ -91,11 +91,18 @@ export default function LeafShip() {
           {/* 배경 영상 */}
           <video
             ref={videoRef}
+            autoPlay
             muted
             playsInline
             preload="auto"
             onLoadedData={() => console.log('Video loaded successfully')}
-            onError={(e) => console.error('Video error:', e)}
+            onCanPlay={() => console.log('Video can play')}
+            onLoadStart={() => console.log('Video load started')}
+            onError={(e) => {
+              console.error('Video error:', e);
+              console.error('Video error details:', e.target.error);
+            }}
+            onLoadedMetadata={() => console.log('Video metadata loaded')}
             style={{
               position: 'absolute',
               top: 0,
@@ -108,7 +115,8 @@ export default function LeafShip() {
               transition: 'opacity 0.5s ease-in-out'
             }}
           >
-            <source src="/act_program_mvp/leaf.mp4" type="video/mp4" />
+            <source src="/act_program_mvp/leaf_v2.mp4" type="video/mp4" />
+            브라우저가 비디오를 지원하지 않습니다.
           </video>
 
           {/* 기본 배경 (영상이 로드되기 전) */}
