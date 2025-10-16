@@ -52,9 +52,22 @@ export default function DiaryList() {
         <Box ref={nodeRef} sx={{ minHeight: '100vh', backgroundColor: 'white', position: 'relative' }}>
           <AppBar position="sticky" elevation={0} sx={{ backgroundColor: 'rgba(255,255,255,0.95)', top: 0 }}>
             <Toolbar sx={{ display: 'flex', alignItems: 'center', px: 0 }}>
-              <Box sx={{ width: 48 }}>
-                <IconButton onClick={handleBackClick} sx={{ color: '#1B1F27', p: 2 }}>
-                  <img src={backIcon} alt="뒤로가기" style={{ width: '46px', height: '46px' }} />
+              <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-start' }}>
+                <IconButton 
+                  onClick={handleBackClick}
+                  sx={{ 
+                    color: '#1B1F27',
+                    p: 2
+                  }}
+                >
+                  <img 
+                    src={backIcon} 
+                    alt="뒤로가기" 
+                    style={{ 
+                      width: '46px', 
+                      height: '46px' 
+                    }} 
+                  />
                 </IconButton>
               </Box>
               <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
@@ -67,6 +80,27 @@ export default function DiaryList() {
             {error ? <Typography color="error">{error}</Typography>
             : diaries.length === 0 ? (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+                {/* 아이콘 */}
+                <Box sx={{ 
+                  width: 80, 
+                  height: 80, 
+                  borderRadius: '50%', 
+                  backgroundColor: '#f0f0f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mb: 3
+                }}>
+                  <Typography sx={{ 
+                    fontSize: '48px', 
+                    color: '#666',
+                    fontWeight: 'bold'
+                  }}>
+                    !
+                  </Typography>
+                </Box>
+                
+                {/* 메시지 */}
                 <Typography variant="body1" sx={{ color: '#999', fontSize: '16px', fontWeight: 'medium' }}>
                   ... 일기 내역이 없습니다 ...
                 </Typography>

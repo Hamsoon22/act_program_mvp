@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   X,
@@ -12,6 +12,8 @@ import {
   Leaf
 } from "lucide-react";
 import { useUser } from "../context/UserContext";
+import { api } from "../lib/api";
+import profileIcon from '../profile.svg';
 
 function MenuItem({ to, icon, children, onClose, onNavigate }) {
   const navigate = useNavigate();
@@ -36,8 +38,31 @@ function MenuItem({ to, icon, children, onClose, onNavigate }) {
 
 export default function HamburgerMenu({ open, onClose, onOpenProfile, onOpenHome, onLogout }) {
   const { user } = useUser();
+  const [currentUserInfo, setCurrentUserInfo] = useState(user);
   const navigate = useNavigate();
   const route = useLocation();
+
+  // 메뉴가 열릴 때마다 최신 사용자 정보 가져오기
+  useEffect(() => {
+    const fetchCurrentUserInfo = async () => {
+      if (open) {
+        try {
+          const userProfile = await api.getUserProfile();
+          setCurrentUserInfo({
+            ...user,
+            userName: userProfile.userName || user?.userName,
+            loginId: userProfile.loginId || user?.loginId,
+            avatarUrl: userProfile.avatarUrl || user?.avatarUrl
+          });
+        } catch (error) {
+          console.error('Failed to fetch user profile:', error);
+          setCurrentUserInfo(user);
+        }
+      }
+    };
+
+    fetchCurrentUserInfo();
+  }, [open, user]);
 
   const handleSpecialNavigation = (to) => {
     if (to === '/profile' && onOpenProfile) {
@@ -50,15 +75,12 @@ export default function HamburgerMenu({ open, onClose, onOpenProfile, onOpenHome
     }
   };
 
-  // ESC로 닫기 + 바디 스크롤 잠금
+  // ESC로 닫기 (바디 스크롤 잠금 제거)
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", onKey);
     };
   }, [open, onClose]);
@@ -69,22 +91,27 @@ export default function HamburgerMenu({ open, onClose, onOpenProfile, onOpenHome
   return (
     <div className="fixed inset-0 z-[90] bg-white" onClick={onClose}>
       <div
-        className="absolute inset-0 bg-white p-5 pt-0 flex flex-col pb-[100px]"
+        className="absolute inset-0 bg-white p-5 pt-0 flex flex-col pb-[100px] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
+        style={{
+          maxHeight: '100vh',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch'
+        }}
       >
         {/* 헤더 */}
         <div className="flex items-center px-2 py-4 pt-7 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden">
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+              {currentUserInfo?.avatarUrl ? (
+                <img src={currentUserInfo.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
               ) : (
-                <UserIcon className="w-10 h-10 p-2 text-slate-600" />
+                <img src={profileIcon} alt="default profile" className="w-full h-full object-cover" />
               )}
             </div>
             <div>
-              <p className="text-slate-800 font-semibold leading-tight">{user?.name || "Guest"}</p>
-              <p className="text-xs text-slate-500">{user?.email || "로그인되지 않음"}</p>
+              <p className="text-slate-800 font-semibold leading-tight">{currentUserInfo?.userName || "Guest"}</p>
+              <p className="text-xs text-slate-500">{currentUserInfo?.loginId || "로그인되지 않음"}</p>
             </div>
           </div>
         </div>

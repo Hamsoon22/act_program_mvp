@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Container, Typography, Radio, RadioGroup, FormControlLabel,
   FormControl, Button, Box, AppBar, Toolbar, IconButton
@@ -37,6 +37,7 @@ export default function RuminationSurvey() {
   const [scrolled, setScrolled] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const nodeRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -188,8 +189,9 @@ export default function RuminationSurvey() {
         timeout={250}
         classNames="slide"
         unmountOnExit={false}
+        nodeRef={nodeRef}
       >
-        <Box className="page-container" sx={{ 
+        <Box ref={nodeRef} className="page-container" sx={{ 
           margin: 0, 
           padding: 0,
           width: '100%',

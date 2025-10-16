@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'https://yonsei-des-api.nivecodes.com';
+const API_URL = import.meta.env.VITE_API_URL || 'https://ewha-des-api.nivecodes.com';
 
 /** 공통 fetch 래퍼 */
 async function request(path, opts = {}) {
@@ -62,10 +62,10 @@ export const api = {
   },
 
   // ✅ 사용자 정보 수정 (이름 변경 등)
-  updateUserProfile({ userName }) {
+  updateUserProfile(profileData) {
     return request('/api/user/v1/mypage', {
-      method: 'PATCH',
-      body: JSON.stringify({ userName }),
+      method: 'PUT',
+      body: JSON.stringify(profileData),
     }).then(unwrap);
   },
 

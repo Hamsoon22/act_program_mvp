@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
+import loginImg from "./login.png";
 import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { CSSTransition } from 'react-transition-group';
 import HeaderEditable from "./components/HeaderEditable";
 import {
   Calendar as CalendarIcon, User, CheckCircle2, Music2, Mic, Leaf, Pencil, Gift, FileText, Plus,
-  Eye, EyeOff, Trash2, LogIn, LogOut, Play, Save, Link as LinkIcon,
+  Eye, EyeOff, Trash2, LogIn, LogOut, Play, Save, Link as LinkIcon, ArrowRight,
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -146,7 +147,9 @@ function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onO
           )}
         </div>
         <div className="flex items-center gap-2">
+          {/* UserMenuButton 숨김 처리
           <UserMenuButton onClick={onOpenMenu} />
+          */}
         </div>
       </div>
       {role === "counselor" && (
@@ -225,18 +228,31 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
     isFeature && selectedFeature ? (
       <Button
         variant="outline"
-        className="h-7 rounded-xl px-2 py-1 text-xs sm:text-sm"
+        className="h-7 rounded-xl px-2 py-1 text-xs sm:text-sm flex items-center gap-1"
         onClick={() => navigate(selectedFeature.path)}
       >
-        <CalendarIcon size={14} />
-        <span className="hidden sm:inline">열기</span>
+        <ArrowRight size={16} />
+        <span className="hidden sm:inline">이동</span>
       </Button>
     ) : null
   );
 
+  // 종류별 아이콘 배경색 (새로운 HEX 코드)
+  const typeBg = {
+    assessment: { backgroundColor: '#C4EBF9' },   // 진단/설문
+    practice:   { backgroundColor: '#E0F6DB' },   // 연습/활동
+    content:    { backgroundColor: '#E1DFFF' },   // 콘텐츠
+    milestone:  { backgroundColor: '#F2CDDE' },   // 마일스톤
+    feature:    { backgroundColor: '#F9E9D5' }    // 앱 기능
+  };
   return (
-    <div className="flex items-center gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-gray-200 p-3 sm:p-4">
-      <div className={cn("grid h-10 w-10 place-items-center rounded-xl", item.done ? "bg-green-50" : "bg-orange-50")}><Icon /></div>
+    <div className="flex items-start gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-gray-200 p-3 sm:p-4">
+      <div
+        className={cn("grid h-10 w-10 place-items-center rounded-xl")}
+        style={typeBg[item.type] || { backgroundColor: '#f3f4f6' }}
+      >
+        <Icon />
+      </div>
       <div className="flex-1">
         {clientMode ? (
           <>
@@ -254,7 +270,8 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
             {item.type === "assessment" && item.link && (
               <Button
                 variant="outline"
-                className="mt-2 text-sky-600 underline"
+                className="mt-2 underline flex items-center gap-1"
+                style={{ color: '#1EB4E6', borderColor: '#D1EAF7' }}
                 onClick={() => {
                   if (item.link && item.link.startsWith("/")) {
                     navigate(item.link);
@@ -264,6 +281,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
                 }}
               >
                 진단하기 바로가기
+                <ArrowRight size={18} style={{marginLeft: 2}} />
               </Button>
             )}
             {isDiary && (
@@ -604,6 +622,36 @@ function VideoModal({ url, onClose }) {
   );
 }
 
+// ----- WeekSetup -----
+function WeekSetup({ initialWeeks, onConfirm, onCancel }) {
+  const [weeks, setWeeks] = useState(initialWeeks);
+  
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl p-6 shadow-xl max-w-sm w-full mx-4">
+        <h2 className="text-lg font-bold mb-4">주차 설정</h2>
+        <div className="mb-4">
+          <Label>주차 수</Label>
+          <Input
+            type="number"
+            min="1"
+            max="20"
+            value={weeks}
+            onChange={(e) => setWeeks(Number(e.target.value))}
+          />
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={() => onConfirm(weeks)} className="flex-1">
+            확인
+          </Button>
+          <Button variant="outline" onClick={onCancel} className="flex-1">
+            취소
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ----- AppHome -----
 function AppHome() {
@@ -611,6 +659,7 @@ function AppHome() {
   const role = localStorage.getItem("role"); // 'counselor' | 'client' | null
   const programMasterId = 1;
   const [activeTab, setActiveTab] = useState('home');
+  const [isExiting, setIsExiting] = useState(false);
 
   const [clientMode, setClientMode] = useState(() => {
     const saved = localStorage.getItem("act-clientmode");
@@ -785,71 +834,154 @@ function AppHome() {
   };
 
   return (
-    <div className="mx-auto max-w-full sm:max-w-3xl px-2 sm:px-4 md:p-4">
-      <Toolbar
-        clientMode={clientMode}
-        setClientMode={setClientMode}
-        role={role}
-        onLogout={onLogout}
-        openWeekSetup={openWeekSetup}
-        onOpenMenu={() => setShowMenu(true)}
-      />
-
-      <HeaderEditable program={program} setProgram={role === "counselor" ? setProgram : undefined} clientMode={clientMode} />
-
-      {role === "counselor" && program.weeks.length === 0 && (
-        <div className="rounded-xl sm:rounded-2xl border border-dashed p-4 sm:p-6 text-center text-sm sm:text-base text-gray-500">
-          주차가 없습니다. 우측 상단의 <b>주차 설정</b> 버튼을 눌러 1~20주를 생성하세요.
-        </div>
-      )}
-
-      <div className="space-y-3 sm:space-y-4">
-        {program.weeks.map((week, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
-            <WeekEditor
-              week={week}
-              onChange={(w) => changeWeek(i, w)}
-              onRemove={() => removeWeek(i)}
-              clientMode={clientMode}
-              role={role}
-              weekIdx={i}
-              programMasterId={programMasterId}
-              reloadWeeks={undefined} // DB 연결 X
+    <>
+      <style>
+        {`
+          .fade-container {
+            opacity: 1;
+            transition: opacity 300ms ease-out;
+          }
+          .fade-container.exiting {
+            opacity: 0;
+          }
+        `}
+      </style>
+      <div 
+        className={`fade-container ${isExiting ? 'exiting' : ''}`}
+        style={{ 
+          minHeight: '100vh', 
+          backgroundColor: '#f8f9fa',
+          paddingBottom: '100px'
+        }}
+      >
+        {/* 상단 그라데이션+모션 헤더 */}
+        <div
+          className="animate-gradient-xy"
+          style={{
+            background: 'linear-gradient(135deg, #A5E1F5 0%, #F0C5D9 100%)',
+            backgroundSize: '400% 400%',
+            padding: '2rem 1rem 1.5rem 1rem',
+            borderBottomLeftRadius: '30px',
+            borderBottomRightRadius: '30px',
+            transition: 'background-position 1s ease',
+            position: 'relative'
+          }}
+        >
+          <div className="max-w-md mx-auto" style={{position: 'relative'}}>
+            <img 
+              src={loginImg} 
+              alt="login graphic" 
+              style={{
+                width: 150, 
+                height: 150, 
+                objectFit: 'contain', 
+                position: 'absolute', 
+                right: '0px', 
+                top: '0px', 
+                zIndex: 1, 
+                pointerEvents: 'none',
+                opacity: 0.85
+              }} 
             />
-          </motion.div>
-        ))}
-
-        {!clientMode && role === "counselor" && (
-          <div className="grid place-items-center py-6">
-            <Button className="px-4 sm:px-6 py-3 text-base"><Plus /> <span className="hidden sm:inline">주차 추가(프론트)</span></Button>
+            <div className="flex items-center gap-4" style={{minHeight: 120}}>
+              <h1 className="text-2xl font-bold text-black mb-4 leading-tight z-10" style={{position: 'relative', zIndex: 2}}>
+                ACT for Burn Out<br />
+                in College<br />
+                Students
+              </h1>
+            </div>
+            {/* 날짜 정보 */}
+            <div className="bg-white/95 rounded-full px-3 py-1.5 mb-2 flex items-center gap-2" style={{position: 'relative', zIndex: 2}}>
+              <CalendarIcon size={16} className="text-gray-600" />
+              <span className="text-gray-800 font-medium text-sm">
+                2025.10.21 ~ 2025.11.11
+              </span>
+            </div>
+            {/* 강사 정보 */}
+            <div className="bg-white/95 rounded-full px-3 py-1.5 flex items-center gap-2" style={{position: 'relative', zIndex: 2}}>
+              <User size={16} className="text-gray-600" />
+              <span className="text-gray-800 font-medium text-sm">김지은 교수님</span>
+            </div>
           </div>
+        </div>
+
+        {/* 하단 흰색 콘텐츠 영역 */}
+        <div className="px-4 py-6 bg-white" style={{ minHeight: '60vh' }}>
+          <div className="max-w-md mx-auto">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">번아웃 회복 워크샵</h2>
+
+          {role === "counselor" && !clientMode && (
+            <div className="max-w-md mx-auto mb-6">
+              <Toolbar
+                clientMode={clientMode}
+                setClientMode={setClientMode}
+                role={role}
+                onLogout={onLogout}
+                openWeekSetup={openWeekSetup}
+                onOpenMenu={() => setShowMenu(true)}
+              />
+            </div>
+          )}
+
+          {role === "counselor" && program.weeks.length === 0 && (
+            <div className="max-w-md mx-auto rounded-xl border border-dashed border-gray-300 p-6 text-center text-gray-500 bg-gray-50">
+              주차가 없습니다. 우측 상단의 <b>주차 설정</b> 버튼을 눌러 1~20주를 생성하세요.
+            </div>
+          )}
+
+          <div className="max-w-md mx-auto space-y-4">
+            {program.weeks.map((week, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                <WeekEditor
+                  week={week}
+                  onChange={(w) => changeWeek(i, w)}
+                  onRemove={() => removeWeek(i)}
+                  clientMode={clientMode}
+                  role={role}
+                  weekIdx={i}
+                  programMasterId={programMasterId}
+                  reloadWeeks={undefined}
+                />
+              </motion.div>
+            ))}
+
+            {!clientMode && role === "counselor" && (
+              <div className="grid place-items-center py-6">
+                <Button className="px-6 py-3 text-base bg-purple-600 text-white hover:bg-purple-700">
+                  <Plus /> <span className="hidden sm:inline">주차 추가</span>
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          {/* 하단 정보 - 제일 아래로 이동 */}
+          <div className="text-center text-gray-500 py-6 mt-6">
+            <p className="mb-2">역할: 내담자 • 로컬 저장됨</p>
+            <p className="text-sm">진단하기</p>
+          </div>
+          </div>
+        </div>
+
+        {showWeekSetup && role === "counselor" && (
+          <WeekSetup initialWeeks={Math.max(1, program.weeks.length || 4)} onConfirm={onConfirmWeeks} onCancel={() => setShowWeekSetup(false)} />
         )}
-      </div>
 
-      <footer className="py-6 sm:py-10 text-center text-xs sm:text-sm text-gray-400">
-        역할: {role === "counselor" ? "상담사" : "내담자"} • 로컬 저장됨
-      </footer>
-
-      {showWeekSetup && role === "counselor" && (
-        <WeekSetup initialWeeks={Math.max(1, program.weeks.length || 4)} onConfirm={onConfirmWeeks} onCancel={() => setShowWeekSetup(false)} />
-      )}
-
-      <HamburgerMenu
-        open={showMenu}
-        onClose={() => setShowMenu(false)}
-        onOpenProfile={() => setShowProfile(true)}
-        onLogout={onLogout}
-      />
-        <BottomNavigation
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        onOpenMenu={() => setShowMenu(true)}
-        onOpenProfile={() => navigate('/profile')}
-        showMenu={showMenu}
-        onCloseMenu={() => setShowMenu(false)}
+        <HamburgerMenu
+          open={showMenu}
+          onClose={() => setShowMenu(false)}
+          onOpenProfile={() => navigate('/profile')}
+          onLogout={onLogout}
         />
-      {/* <ProfileSheet open={showProfile} onClose={() => setShowProfile(false)} /> */}
-    </div>
+        <BottomNavigation
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          onOpenMenu={() => setShowMenu(true)}
+          onOpenProfile={() => navigate('/profile')}
+          showMenu={showMenu}
+          onCloseMenu={() => setShowMenu(false)}
+        />
+      </div>
+    </>
   );
 }
 

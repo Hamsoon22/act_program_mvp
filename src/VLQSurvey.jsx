@@ -4,7 +4,7 @@ import {
   Button, Box, AppBar, Toolbar, IconButton, Paper
 } from '@mui/material';
 import { useNavigate, useLocation } from "react-router-dom";
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import backIcon from './back.svg';
 
 const questions = [
   "태어난 가족 (부모님, 형제 등)",
@@ -23,17 +23,10 @@ const questions = [
 
 export function ValueIntroTitle({ step }) {
   const [isFixed, setIsFixed] = useState(false);
-  const boxRef = useRef(null);
-  const originTop = useRef(null);
 
   useEffect(() => {
-    if (boxRef.current && originTop.current === null) {
-      const rect = boxRef.current.getBoundingClientRect();
-      originTop.current = window.scrollY + rect.top;
-    }
     const handleScroll = () => {
-      if (!boxRef.current || originTop.current === null) return;
-      const shouldFix = window.scrollY + 56 >= originTop.current;
+      const shouldFix = window.scrollY > 0;
       setIsFixed(shouldFix);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -41,7 +34,7 @@ export function ValueIntroTitle({ step }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const titleText = step === 1 ? "내가 가치롭게 여기는 정도" : "내가 헌신(행동)하는 정도";
+  const titleText = step === 1 ? "내가 가치롭게 여기는 정도" : "내가 실천(행동)하는 정도";
   const description = step === 1
     ? (
       <>
@@ -60,25 +53,22 @@ export function ValueIntroTitle({ step }) {
 
   return (
     <>
-      {isFixed && (
-        <Box sx={{ height: boxRef.current?.offsetHeight || 0 }} />
-      )}
       <Paper
-        ref={boxRef}
         elevation={isFixed ? 4 : 0}
         sx={{
           position: isFixed ? "fixed" : "static",
-          top: isFixed ? 56 : "auto",
+          top: isFixed ? 0 : "auto",
           left: 0,
           right: 0,
           zIndex: 1000,
-          background: isFixed ? '#F1F5F9' : 'linear-gradient(135deg, #DFEFF6 0%, #DFEFF6 38%, #ffefdfff 90%)',
-          py: 3,
+          background: isFixed ? 'white' : 'transparent',
+          py: isFixed ? 3 : 0,
           px: 2,
-          borderRadius: isFixed ? 0 : 3,
+          borderRadius: 0,
           fontWeight: 'bold',
           fontSize: '1.2rem',
-          textAlign: 'center'
+          textAlign: 'center',
+          display: isFixed ? 'block' : 'none'
         }}
       >
         {titleText}
@@ -86,12 +76,10 @@ export function ValueIntroTitle({ step }) {
       <Typography
         variant="body2"
         sx={{
-          textAlign: 'center',
-          mt: 2,
-          mb: 3,
           color: '#282828ff',
-          fontWeight: 400,
-          fontSize: '1.05rem'
+          mb: 0,
+          fontWeight: 'regular',
+          mt: 0
         }}
       >
         {description}
@@ -102,8 +90,8 @@ export function ValueIntroTitle({ step }) {
 
 function QuestionSection({ step, responses, setResponses, disabledIndices = [], importance = [], navigate }) {
   const isImportance = step === 1;
-  const labelLeft = isImportance ? "1 중요하지 않음" : "1 헌신하지 않음";
-  const labelRight = isImportance ? "10 매우 중요" : "10 매우 헌신";
+  const labelLeft = isImportance ? "1 중요하지 않음" : "1 실천하지 않음";
+  const labelRight = isImportance ? "10 매우 중요" : "10 매우 실천";
 
   const handleChange = (index, value) => {
     const updated = [...responses];
@@ -120,11 +108,7 @@ function QuestionSection({ step, responses, setResponses, disabledIndices = [], 
             key={idx}
             sx={{
               my: 4,
-              py: 3,
-              px: 2,
-              background: '#F8FBFD',
-              borderRadius: 3,
-              boxShadow: '0px 2px 8px rgba(27,31,39,0.06)',
+              py: 2,
               opacity: isDisabled ? 0.65 : 1
             }}
           >
@@ -251,7 +235,17 @@ function VLQSurvey() {
   const [step, setStep] = useState(1);
   const [importance, setImportance] = useState(Array(12).fill(undefined));
   const [commitment, setCommitment] = useState(Array(12).fill(undefined));
+  const [scrolled, setScrolled] = useState(false);
   const disabledIndices = step === 2 ? importance.map((v, i) => (v === 0 && (i === 0 || i === 2)) ? i : null).filter(i => i !== null) : [];
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 80);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleNext = () => {
     setStep(2);
@@ -266,28 +260,69 @@ function VLQSurvey() {
 
   return (
     <>
-      <AppBar position="sticky" sx={{ background: '#F1F5F9', boxShadow: 2 }}>
+      <AppBar 
+        position="static" 
+        sx={{ 
+          backgroundColor: scrolled ? 'white' : 'transparent',
+          boxShadow: scrolled ? 2 : 0,
+          transition: 'all 0.3s ease',
+          marginTop: 0,
+          paddingTop: 0,
+          top: 0
+        }}
+      >
         <Toolbar sx={{ display: 'flex', alignItems: 'center', px: 0 }}>
           <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-start' }}>
             <IconButton
               onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}
-              sx={{ color: '#1B1F27', p: 2 }}
+              sx={{ 
+                color: '#1B1F27',
+                p: 2
+              }}
             >
-              <ArrowBackIcon fontSize="large" />
+              <img 
+                src={backIcon} 
+                alt="뒤로가기" 
+                style={{ 
+                  width: '46px', 
+                  height: '46px' 
+                }} 
+              />
             </IconButton>
           </Box>
           <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="h6" sx={{ color: '#1B1F27', fontWeight: 'bold', fontSize: '1.1rem' }}>
-              내 삶의 방향 찾기
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: '#1B1F27', 
+                fontWeight: 'bold',
+                fontSize: '18px'
+              }}
+            >
+              VLQ
             </Typography>
           </Box>
           <Box sx={{ width: 48 }} />
         </Toolbar>
       </AppBar>
-
-      <Box sx={{ background: 'linear-gradient(135deg, #DFEFF6 0%, #DFEFF6 38%, #ffefdfff 90%)', pt: 4, pb: 1 }}>
-        <ValueIntroTitle step={step} />
-      </Box>
+      
+      <Container maxWidth="md" sx={{ py: 0, pb: 10, pt: 0, mt: 0 }}>
+        <Box sx={{ 
+          background: 'linear-gradient(135deg, #DFEFF6 0%, #DFEFF6 38%, #ffefdfff 90%)',
+          px: 3,
+          pt: 11,
+          pb: 5, 
+          mb: 4,
+          mx: -3,
+          mt: -10,
+          borderBottomLeftRadius: 30,
+          borderBottomRightRadius: 30
+        }}>
+          <Typography variant="body2" sx={{ fontSize: '22px', color: '#000000ff', mb: 1, fontWeight: 'bold', mt: 0 }}>
+            내 삶의 방향 찾기
+          </Typography>
+          <ValueIntroTitle step={step} />
+        </Box>
 
       {step === 1 && (
         <QuestionSection
@@ -326,12 +361,17 @@ function VLQSurvey() {
               size="large"
               onClick={() => navigate("/valueintro", { state: { name } })}
               sx={{
-                mr: 2,
+                flex: 1,
+                mr: 1,
                 height: '3.625rem',
                 fontWeight: 'bold',
                 borderRadius: 50,
                 color: '#1B1F27',
-                border: '2px solid #1B1F27'
+                backgroundColor: 'white',
+                border: '2px solid #1B1F27',
+                '&:hover': {
+                  backgroundColor: '#f5f5f5',
+                }
               }}
             >
               이전
@@ -342,6 +382,8 @@ function VLQSurvey() {
               onClick={handleNext}
               disabled={importance.includes(undefined)}
               sx={{
+                flex: 1,
+                ml: 1,
                 height: '3.625rem',
                 backgroundColor: '#1B1F27',
                 fontWeight: 'bold',
@@ -368,12 +410,17 @@ function VLQSurvey() {
               size="large"
               onClick={() => setStep(1)}
               sx={{
-                mr: 2,
+                flex: 1,
+                mr: 1,
                 height: '3.625rem',
                 fontWeight: 'bold',
                 borderRadius: 50,
                 color: '#1B1F27',
-                border: '2px solid #1B1F27'
+                backgroundColor: 'white',
+                border: '2px solid #1B1F27',
+                '&:hover': {
+                  backgroundColor: '#f5f5f5',
+                }
               }}
             >
               이전
@@ -384,6 +431,8 @@ function VLQSurvey() {
               onClick={handleResult}
               disabled={commitment.includes(undefined)}
               sx={{
+                flex: 1,
+                ml: 1,
                 height: '3.625rem',
                 backgroundColor: '#1B1F27',
                 fontWeight: 'bold',
@@ -404,6 +453,7 @@ function VLQSurvey() {
           </>
         )}
       </Box>
+      </Container>
     </>
   );
 }

@@ -193,7 +193,7 @@ export default function LeafShip() {
                   fontSize: '18px'
                 }}
               >
-                나뭇잎 배 보내기
+                나뭇잎 배 띄우기
               </Typography>
             </Box>
             

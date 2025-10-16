@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Container, Typography, Radio, RadioGroup, FormControlLabel,
   FormControl, Button, Box, AppBar, Toolbar, IconButton
@@ -8,22 +8,22 @@ import { CSSTransition } from 'react-transition-group';
 import backIcon from './back.svg';
 
 const questions = [
-  "맡은 일을 하는 데 있어서 정서적으로 고갈된 느낌이 든다.",
-  "일을 마치고 퇴근할 때쯤이면 기진맥진한 느낌이 든다.",
-  "아침에 일어나서 다시 출근할 생각을 하면 피곤한 느낌이 든다.",
-  "하루 종일 일하는 것은 나를 긴장시킨다.",
-  "나는 직무상 발생하는 문제들을 효과적으로 해결한다.",
-  "일 때문에 소진된 상태이다.",
-  "직장에 효과적인 기여를 하고 있다고 느낀다.",
-  "이 일을 시작한 이후로 내 일에 대한 관심이 줄었다.",
-  "맡은 일을 하는데 있어서 소극적이 되었다.",
-  "내가 생각할 때, 나는 일을 잘한다.",
-  "직무상 무언가를 성취했을 때 기쁨을 느낀다.",
-  "나는 현재의 직무에서 가치 있는 많은 것을 이루어왔다.",
-  "나는 방해받지 않고 내 일을 수행하기 원할 뿐이다.",
-  "내 일이 무언가에 기여하든 말든 나는 점점 더 냉소적이 되었다.",
-  "내 일의 중요성이 의심스럽다.",
-  "나는 일을 효과적으로 처리하고 있다는 자신감이 있다."
+  "학업 때문에 정서적으로 고갈된 느낌이 든다.",
+  "일과가 끝날 때쯤이면 진이 다 빠진 느낌이다.",
+  "아침에 일어나서 학교에 가야한다고 생각하면 피곤하다.",
+  "하루 종일 수업에 참석하는 것은 정말 부담스럽다.",
+  "학업 중에 생기는 문제를 효과적으로 해결할 수 있다.",
+  "학업 때문에 탈진한 느낌이다.",
+  "수업 시간에 효과적인 기여를 하고 있다.",
+  "학업에 대한 흥미가 줄어들었다.",
+  "공부에 대한 열의가 줄어들었다.",
+  "나는 스스로 괜찮은 학생이라고 생각한다.",
+  "학교에서 무언가를 성취했을 때 짜릿한 기분을 느낀다.",
+  "학업을 통해 가치 있는 것들을 많이 이뤄냈다.",
+  "그냥 내 할 일만 끝내고, 귀찮게 하지 않았으면 좋겠다.",
+  "내 학업이 과연 의미가 있는지 점점 냉소적으로 바라보게 된다.",
+  "내 학업의 의미와 중요성에 대해 의문이 든다.",
+  "학업을 효율적으로 하고 있다는 자신감이 있다."
 ];
 
 export default function MBISurvey() {
@@ -31,6 +31,7 @@ export default function MBISurvey() {
   const [scrolled, setScrolled] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const nodeRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -170,8 +171,9 @@ export default function MBISurvey() {
         timeout={250}
         classNames="slide"
         unmountOnExit={false}
+        nodeRef={nodeRef}
       >
-        <Box className="page-container" sx={{ 
+        <Box ref={nodeRef} className="page-container" sx={{ 
           margin: 0, 
           padding: 0,
           width: '100%',
@@ -245,7 +247,7 @@ export default function MBISurvey() {
             MBI
           </Typography>
           <Typography variant="body2" sx={{ color: '#282828ff', mb: 0, fontWeight: 'regular', mt: 0 }}>
-            직장에서 느끼는 감정과 경험에 대한 문항입니다.<br /> 각 문항을 읽고 얼마나 자주<br />그런 감정이나 생각을 경험하는지 선택해주세요.<br /><br />
+            학업과 관련한 감정에 대한 문항입니다.<br /> 각 문항을 주의 깊게 읽고<br />그렇게 느낀 적이 있는지 생각하시기 바랍니다.<br /><br />
             <strong>척도 안내:</strong><br />
             0: 전혀 없다, 1: 1년에 2-3회 또는 그 미만<br />
             2: 한 달에 한 번 또는 그 미만, 3: 한 달에 2-3회<br />
