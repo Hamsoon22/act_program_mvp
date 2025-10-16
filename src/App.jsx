@@ -257,7 +257,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
       <div className="flex-1">
         {clientMode ? (
           <>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center justify-between w-full">
               <div className="text-sm sm:text-base font-medium">{item.title}</div>
               {hasVideo && (
                 <Button variant="outline" className="h-7 rounded-xl px-2 py-1 text-xs sm:text-sm" onClick={() => setOpen(true)}>
@@ -381,7 +381,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center justify-between w-full">
               <div className="text-sm sm:text-base font-medium">{item.title}</div>
               {hasVideo && (
                 <Button variant="outline" className="h-7 rounded-xl px-2 py-1 text-xs sm:text-sm" onClick={() => setOpen(true)}>
@@ -410,7 +410,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
         )}
       </div>
       {!clientMode && role === "counselor" && (
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center justify-between w-full">
           <Button variant="outline" onClick={() => { onEditModeChange(editMode ? false : true); }}>
             {editMode ? <Save size={16} /> : <Pencil size={16} />}
             <span className="hidden sm:inline">{editMode ? "저장" : "수정"}</span>
@@ -522,14 +522,14 @@ function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, progr
     <Card className="mb-3 sm:mb-4">
       <CardContent>
         <div className="mb-2 sm:mb-3 flex items-center justify-between flex-wrap">
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center justify-between w-full">
             {clientMode ? (
               <>
                 <span className="rounded-full bg-gray-900 px-3 py-1 text-xs sm:text-sm font-medium text-white">{week.weekLabel || "주차"}</span>
                 {week.dateTag && (<span className="ml-2 text-xs sm:text-sm text-gray-600">{week.dateTag instanceof Date ? week.dateTag.toLocaleDateString() : ""}</span>)}
               </>
             ) : (
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center justify-between w-full">
                 <Input className="w-24" value={week.weekLabel} onChange={(e) => onChange({ ...week, weekLabel: e.target.value })} placeholder="1주차" disabled={role !== "counselor"} />
                 <DatePicker selected={week.dateTag} onChange={(date) => onChange({ ...week, dateTag: date })} dateFormat="yyyy.MM.dd" placeholderText="날짜" className="w-36 rounded-xl border px-2 py-1 text-sm sm:text-base" disabled={role !== "counselor"} />
               </div>
@@ -852,7 +852,7 @@ function AppHome() {
         style={{ 
           minHeight: '100vh', 
           backgroundColor: '#f8f9fa',
-          paddingBottom: '100px'
+          paddingBottom: '0px'
         }}
       >
         {/* 상단 그라데이션+모션 헤더 */}
@@ -958,7 +958,6 @@ function AppHome() {
           {/* 하단 정보 - 제일 아래로 이동 */}
           <div className="text-center text-gray-500 py-6 mt-6">
             <p className="mb-2">역할: 내담자 • 로컬 저장됨</p>
-            <p className="text-sm">진단하기</p>
           </div>
           </div>
         </div>

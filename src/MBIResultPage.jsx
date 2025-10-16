@@ -293,10 +293,10 @@ export default function MBIResultPage() {
             </Box>
           </Box>
 
-          {/* 비인격화 (Depersonalization) */}
+          {/* 냉소 (Cynicism) */}
           <Box sx={{ width: '100%', textAlign: 'center' }}>
             <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 'bold', fontSize: '1.2rem' }}>
-              비인격화
+              냉소
             </Typography>
             <Box sx={{
               backgroundColor: '#f5f5f5',

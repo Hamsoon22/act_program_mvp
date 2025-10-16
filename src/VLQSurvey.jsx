@@ -368,7 +368,7 @@ function VLQSurvey() {
                 borderRadius: 50,
                 color: '#1B1F27',
                 backgroundColor: 'white',
-                border: '2px solid #1B1F27',
+                border: '2px solid #e0e0e0',
                 '&:hover': {
                   backgroundColor: '#f5f5f5',
                 }
@@ -417,7 +417,7 @@ function VLQSurvey() {
                 borderRadius: 50,
                 color: '#1B1F27',
                 backgroundColor: 'white',
-                border: '2px solid #1B1F27',
+                border: '2px solid #e0e0e0',
                 '&:hover': {
                   backgroundColor: '#f5f5f5',
                 }
