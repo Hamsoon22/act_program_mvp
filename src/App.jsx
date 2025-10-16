@@ -418,7 +418,11 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
           <Button variant="ghost" onClick={onRemove}><Trash2 size={16}/><span className="hidden sm:inline">삭제</span></Button>
         </div>
       )}
-      {clientMode && hasVideo && open && (<VideoModal url={item.videoUrl} onClose={() => setOpen(false)} />)}
+      {clientMode && hasVideo && open &&  <VideoModal
+                url={item.videoUrl}
+                onClose={() => setOpen(false)}
+                description={item.description || item.subtitle || item.title}
+              /> }
     </div>
   );
 }
@@ -590,7 +594,8 @@ function getYouTubeId(url = "") {
     return null;
   }
 }
-function VideoModal({ url, onClose }) {
+// ----- VideoModal -----
+function VideoModal({ url, onClose, description }) {
   const yt = getYouTubeId(url);
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-2 sm:p-4" onClick={onClose}>
@@ -615,6 +620,12 @@ function VideoModal({ url, onClose }) {
                 이 링크는 임베드할 수 없어요. <a className="text-sky-600 underline" href={url} target="_blank" rel="noreferrer">새 탭에서 열기</a>
               </div>
             )}
+
+            {/* === 설명 추가 === */}
+            {description && (
+              <div className="mt-4 text-gray-700 whitespace-pre-line text-base">{description}</div>
+            )}
+
             <div className="mt-4 text-right"><Button variant="outline" onClick={onClose}>닫기</Button></div>
           </CardContent>
         </Card>
@@ -622,6 +633,7 @@ function VideoModal({ url, onClose }) {
     </div>
   );
 }
+
 
 // ----- WeekSetup -----
 function WeekSetup({ initialWeeks, onConfirm, onCancel }) {
@@ -702,6 +714,14 @@ function AppHome() {
           title: "호흡 및 일상 명상하기",
           subtitle: "링크 임베드",
           videoUrl: "https://www.youtube.com/embed/BY6pJb5zEQA",
+           // 설명 추가!
+           description: `
+        호흡 명상
+        
+        복식 호흡을 하면서 호흡 명상을 해보도록 하겠습니다. 처음 연습해 보는 것이라면, 왼손을 가슴 위에, 오른손을 배 위에 두고 가슴 보다는 배(오른손)가 움직이도록 하면서 연습해 보는 것이 좋습니다. 호흡 명상을 할 때 중요한 것은 호흡을 천천히 하는 것입니다. 숨을 천천히 하나, 둘, 셋 들이쉬고 잠시 멈추어 있다가(하나, 둘, 셋) 다시 천천히 내쉽니다. 하나, 둘, 셋, 넷, 그리고 잠시 멈춥니다(하나, 둘, 셋). 만약 천천히 내쉬는 것이 어렵다면, 마치 초를 불 때처럼 입을 조그맣게 모아서 입으로 천천히 내쉽니다.
+        
+        이렇게 몇 번 숨을 들이쉬고 내쉬면서 호흡이 내 코와 입을 통해 몸으로 들어가는 느낌, 이 숨을 통해 내 몸이 변화되는 것을 느껴 봅니다. 이 때도 다양한 생각과 느낌이 왔다 갈 수 있습니다. 그러면 감정이나 생각이 왔다 갔다는 것을 알아차리고 다시 부드럽게 호흡으로 돌아옵니다.
+                `,
         }
       ]
     },
@@ -722,7 +742,19 @@ function AppHome() {
           title: "mindfulness 영상 보기",
           subtitle: "마인드풀니스 유튜브",
           videoUrl: "https://www.youtube.com/embed/3nwwKbM_vJc",
-        },
+          description: `A. Erik Satie - Gymnopédie No.1 (연주: 피아니스트 문선영)
+
+먼저 호흡에 집중해 보면서, 숨이 내 몸에 들어가고 나가는 느낌을 느껴 봅니다.
+음악이 시작되면, 음악이 좋다, 나쁘다와 같이 판단하는 마음을 ‘끄고,’ 대신 소리가 만들어 내는 공명, 소리의 변화, 조성의 변경과 같이 순간 순간 변화되는 현재의 음악에 주의를 기울입니다. 이 때 마음 속에는 여느 때와 같이 많은 생각과 감정이 왔다 갈 것입니다. 이 생각과 감정이 찾아왔다는 것을 알아차리고, 다시금 부드럽게 음악을 듣는 현재로 돌아옵니다.
+
+B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor, BWV 773 (연주: 피아니스트 문선영)
+
+첫 곡을 통해 개방된 주의력(open attention)을 연습해 보았다면, 이번에는 집중된 주의력(focused attention)을 연습해 보도록 하겠습니다. 이렇게 함으로서 주어지는 자극, 마음 속에서 일어나는 많은 생각, 감정에 주의를 ‘빼앗기는’ 것이 아니라 내가 주도적으로 나의 주의력을 줄 자극을 선택할 수 있는 연습이 됩니다.
+
+두 개의 성부로 되어 있는 피아노 곡을 들으면서 특정 소리에만 주의를 기울이는 연습을 해보겠습니다. 처음에는 주어지는 악보를 보면서 연습해 보아도 좋습니다. 주의를 자꾸만 다른 성부에 빼앗기곤 하겠지만, 연습이 지속되면서 점차로 주의력을 스스로 조절할 수 있는 자신을 발견하게 될 것입니다.
+`,
+},
+          
         {
           icon: "mic",
           type: "feature",
