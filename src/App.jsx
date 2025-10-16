@@ -610,6 +610,7 @@ function AppHome() {
   const navigate = useNavigate();
   const role = localStorage.getItem("role"); // 'counselor' | 'client' | null
   const programMasterId = 1;
+  const [activeTab, setActiveTab] = useState('home');
 
   const [clientMode, setClientMode] = useState(() => {
     const saved = localStorage.getItem("act-clientmode");
@@ -617,6 +618,20 @@ function AppHome() {
     if (saved === "0") return false;
     return role === "client";
   });
+
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'mypage') {
+      console.log('App: Starting exit animation to profile');
+      setIsExiting(true);
+      setTimeout(() => {
+        console.log('App: Navigating to profile');
+        navigate('/profile');
+      }, 300);
+    }
+    // 'home' tab은 이미 홈에 있으므로 아무것도 하지 않음
+  };
 
   // ====== 하드코딩된 weeks 배열 ======
   const hardCodedWeeks = [
@@ -720,6 +735,7 @@ function AppHome() {
   const [showMenu, setShowMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const route = useLocation();
+  
 
   useEffect(() => saveLS(program), [program]);
   useEffect(() => {
@@ -824,6 +840,14 @@ function AppHome() {
         onOpenProfile={() => setShowProfile(true)}
         onLogout={onLogout}
       />
+        <BottomNavigation
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onOpenMenu={() => setShowMenu(true)}
+        onOpenProfile={() => navigate('/profile')}
+        showMenu={showMenu}
+        onCloseMenu={() => setShowMenu(false)}
+        />
       {/* <ProfileSheet open={showProfile} onClose={() => setShowProfile(false)} /> */}
     </div>
   );
