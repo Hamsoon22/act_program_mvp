@@ -124,7 +124,7 @@ export default function HamburgerMenu({ open, onClose, onOpenProfile, onOpenHome
           <MenuItem to="/vlq-survey" icon={<FileText className="w-5 h-5" />} onClose={onClose}>Valued Living Questionnaire</MenuItem>
           <MenuItem to="/mbi-survey" icon={<FileText className="w-5 h-5" />} onClose={onClose}>MBI-v.students</MenuItem>
           <MenuItem to="/voice-rec" icon={<Mic className="w-5 h-5" />} onClose={onClose}>목소리 녹음</MenuItem>
-          <MenuItem to="/diary" icon={<Pencil className="w-5 h-5" />} onClose={onClose}>일기 목록</MenuItem>
+          <MenuItem to="/diary-list" icon={<Pencil className="w-5 h-5" />} onClose={onClose}>일기 목록</MenuItem>
           <MenuItem to="/leaf-ship" icon={<Leaf className="w-5 h-5" />} onClose={onClose}>나뭇잎 배 띄우기</MenuItem>
         </nav>
 
