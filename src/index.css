@@ -1,7 +1,40 @@
+/* 상단 헤더 그라데이션 애니메이션 */
+@keyframes gradient-xy {
+  0%, 100% {
+    background-size: 400% 400%;
+    background-position: left center;
+  }
+  50% {
+    background-size: 200% 200%;
+    background-position: right center;
+  }
+}
+
+.animate-gradient-xy {
+  animation: gradient-xy 15s ease infinite;
+}
 /* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 하단 네비게이션 완전 고정을 위한 전역 스타일 */
+.bottom-nav-container-global {
+  position: fixed !important;
+  bottom: 0px !important;
+  left: 0px !important;
+  right: 0px !important;
+  height: 95px !important;
+  width: 100vw !important;
+  z-index: 9999 !important;
+  transform: translateZ(0) !important;
+  -webkit-transform: translateZ(0) !important;
+  will-change: transform !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+  -webkit-backface-visibility: hidden !important;
+  backface-visibility: hidden !important;
+}
 
 /* 그라데이션 애니메이션 */
 @keyframes gradient-xy {

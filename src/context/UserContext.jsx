@@ -14,7 +14,8 @@ try {
 const raw = localStorage.getItem(LS_KEY);
 return raw ? JSON.parse(raw) : {
 id: "guest",
-name: "Guest",
+userName: "Guest",
+loginId: "로그인되지 않음",
 email: "",
 avatarUrl: "",
 bio: "",
@@ -24,7 +25,8 @@ timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Seoul",
 } catch {
 return {
 id: "guest",
-name: "Guest",
+userName: "Guest", 
+loginId: "로그인되지 않음",
 email: "",
 avatarUrl: "",
 bio: "",

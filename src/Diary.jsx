@@ -72,9 +72,22 @@ export default function Diary() {
         <Box sx={{ minHeight: '100vh', backgroundColor, position: 'relative' }}>
           <AppBar position="sticky" elevation={0} sx={{ backgroundColor: 'transparent', top: 0 }}>
             <Toolbar sx={{ display: 'flex', alignItems: 'center', px: 0 }}>
-              <Box sx={{ width: 48 }}>
-                <IconButton onClick={handleBackClick} sx={{ color: '#1B1F27', p: 2 }}>
-                  <img src={backIcon} alt="뒤로가기" style={{ width: '46px', height: '46px' }} />
+              <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-start' }}>
+                <IconButton 
+                  onClick={handleBackClick}
+                  sx={{ 
+                    color: '#1B1F27',
+                    p: 2
+                  }}
+                >
+                  <img 
+                    src={backIcon} 
+                    alt="뒤로가기" 
+                    style={{ 
+                      width: '46px', 
+                      height: '46px' 
+                    }} 
+                  />
                 </IconButton>
               </Box>
               <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>

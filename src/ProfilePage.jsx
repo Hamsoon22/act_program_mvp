@@ -49,8 +49,8 @@ export default function ProfilePage() {
                     userName: data.userName || "",
                     email: data.email || "",
                     description: data.description || "",
-                    timeZone: data.timeZone || "",
-                    language: data.language || "",
+                    timeZone: data.timeZone || "Asia/Seoul",
+                    language: data.language || "ko",
                 }));
             } catch (err) {
                 setError(err.message || "에러가 발생했습니다.");
@@ -92,17 +92,19 @@ export default function ProfilePage() {
         setError('');
         setSaved(false);
         try {
-            await api.updateUserProfile({
-                email: form.email,
+            const updateData = {
                 userName: form.userName,
+                language: form.language || 'ko',
+                email: form.email,
                 description: form.description,
-                timeZone: form.timeZone,
-                language: form.language
-            });
+                timeZone: form.timeZone || 'Asia/Seoul'
+            };
+            await api.updateUserProfile(updateData);
             setUser(form);
             setSaved(true);
         } catch (err) {
-            setError("회원정보 저장 중 오류가 발생했습니다.");
+            console.error('Profile update error:', err);
+            setError("회원정보 저장 중 오류가 발생했습니다: " + (err.message || ""));
         }
     };
 
@@ -261,7 +263,10 @@ export default function ProfilePage() {
                             />
                             <button
                                 type="button"
-                                className="w-full inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 bg-blue-700 text-white hover:bg-blue-600 transition-colors mt-2"
+                                className="w-full inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-white transition-colors mt-2"
+                                style={{ backgroundColor: '#00A3D9' }}
+                                onMouseEnter={(e) => e.target.style.backgroundColor = '#0091C1'}
+                                onMouseLeave={(e) => e.target.style.backgroundColor = '#00A3D9'}
                                 onClick={onPasswordSubmit}
                             >
                                 비밀번호 변경
