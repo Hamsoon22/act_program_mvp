@@ -4,6 +4,7 @@ import { useUser } from "./context/UserContext";
 import { Camera, Save } from "lucide-react";
 import BottomNavigation from "./components/BottomNavigation";
 import HamburgerMenu from "./components/HamburgerMenu";
+import FloatingButton from "./components/FloatingButton";
 import {
   Container, Typography, Box, AppBar, Toolbar
 } from '@mui/material';
@@ -311,6 +312,7 @@ export default function ProfilePage() {
                 onOpenHome={handleHomeNavigation}
                 onLogout={handleLogout}
             />
+            <FloatingButton />
             <BottomNavigation
                 activeTab={activeTab}
                 onTabChange={handleTabChange}

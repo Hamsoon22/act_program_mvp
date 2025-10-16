@@ -11,6 +11,7 @@ import {
   Pencil,
   Leaf
 } from "lucide-react";
+import FloatingButton from "./FloatingButton";
 import { useUser } from "../context/UserContext";
 import { api } from "../lib/api";
 import profileIcon from '../profile.svg';
@@ -138,6 +139,7 @@ export default function HamburgerMenu({ open, onClose, onOpenProfile, onOpenHome
           </button>
           <p className="mt-3 text-center text-xs text-slate-400">v1.0.0</p>
         </div>
+      <FloatingButton />
       </div>
     </div>
   );

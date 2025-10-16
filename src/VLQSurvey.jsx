@@ -308,7 +308,7 @@ function VLQSurvey() {
       
       <Container maxWidth="md" sx={{ py: 0, pb: 10, pt: 0, mt: 0 }}>
         <Box sx={{ 
-          background: 'linear-gradient(135deg, #DFEFF6 0%, #DFEFF6 38%, #ffefdfff 90%)',
+          background: 'linear-gradient(135deg, #DFEFF6 0%, #DFEFF6 38%, #dfffeaff 90%)',
           px: 3,
           pt: 11,
           pb: 5, 

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Radar } from "react-chartjs-2";
 import {
@@ -25,17 +25,34 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import backIcon from './back.svg';
+import { useUser } from "./context/UserContext";
+import { api } from "./lib/api";
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 function VLQResult() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useUser();
+  const [userName, setUserName] = useState("사용자");
 
   const results = location.state?.results;
   const importance = location.state?.importance;
   const commitment = location.state?.commitment;
-  const name = location.state?.name || "사용자";
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      try {
+        const userProfile = await api.getUserProfile();
+        setUserName(userProfile.userName || user?.userName || "사용자");
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+        setUserName(user?.userName || "사용자");
+      }
+    };
+    fetchUserName();
+  }, [user]);
 
   useEffect(() => {
     if (!results || !importance || !commitment) {
@@ -107,64 +124,99 @@ function VLQResult() {
 
   return (
     <>
-      <AppBar position="sticky" sx={{ background: '#F1F5F9', boxShadow: 2 }}>
+      <AppBar 
+        position="static" 
+        sx={{ 
+          backgroundColor: 'transparent',
+          boxShadow: 0,
+          transition: 'all 0.3s ease',
+          marginTop: 0,
+          paddingTop: 0,
+          top: 0
+        }}
+      >
         <Toolbar sx={{ display: 'flex', alignItems: 'center', px: 0 }}>
           <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-start' }}>
             <IconButton
-              onClick={() => navigate(-1)}
-              sx={{ color: '#1B1F27', p: 2 }}
+              onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}
+              sx={{ 
+                color: '#1B1F27',
+                p: 2
+              }}
             >
-              <ArrowBackIcon fontSize="large" />
+              <img 
+                src={backIcon} 
+                alt="뒤로가기" 
+                style={{ 
+                  width: '46px', 
+                  height: '46px' 
+                }} 
+              />
             </IconButton>
           </Box>
           <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <Typography variant="h6" sx={{ color: '#1B1F27', fontWeight: 'bold', fontSize: '1.1rem' }}>
-              내 삶의 방향 찾기
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: '#1B1F27', 
+                fontWeight: 'bold',
+                fontSize: '18px'
+              }}
+            >
+              VLQ
             </Typography>
           </Box>
           <Box sx={{ width: 48 }} />
         </Toolbar>
       </AppBar>
 
-      <Box sx={{
-        background: 'linear-gradient(135deg, #DFEFF6 0%, #DFEFF6 38%, #ffefdfff 90%)',
-        pt: 4, pb: 1
-      }}>
-        <Paper elevation={2} sx={{
-          mx: 'auto',
-          my: 3,
-          py: 3,
-          px: 2,
-          maxWidth: 480,
-          background: 'linear-gradient(135deg, #DFEFF6 0%, #DFEFF6 38%, #ffefdfff 90%)',
-          textAlign: 'center',
-          fontWeight: 'bold',
-          fontSize: '1.2rem'
-        }}>
-          {name}님의 가치로운 삶 결과
-        </Paper>
-      </Box>
-
       <Container maxWidth="md" sx={{ py: 0, pb: 8, pt: 0, mt: 0 }}>
         <Box sx={{
-          background: "#F8FBFD",
+          background: 'linear-gradient(135deg, #DFEFF6 0%, #DFEFF6 38%, #dfffeaff 90%)',
+          px: 3,
+          pt: 11,
+          pb: 5, 
+          mb: 4,
+          mx: -3,
+          mt: -10,
+          borderBottomLeftRadius: 30,
+          borderBottomRightRadius: 30
+        }}>
+          <Typography variant="body2" sx={{ fontSize: '22px', color: '#000000ff', mb: 1, fontWeight: 'bold', mt: 0 }}>
+            내 삶의 방향 찾기(가치명확화)
+          </Typography>
+          <Typography variant="body2" sx={{
+            color: '#282828ff',
+            mb: 0,
+            fontWeight: 'regular',
+            fontSize: '13px',
+            lineHeight: 1.5,
+            mt: 2
+          }}>
+            자신에게 진정으로 중요한 것이 무엇인지 인식하고,
+            <br></br>이를 삶의 방향성과 행동의 기준으로 삼는 <br></br>수용전념치료(ACT)의 방법중 하나 입니다.
+          </Typography>
+        </Box>
+        <Box sx={{
+          background: "transparent",
           borderRadius: 4,
           p: 3,
           mb: 4,
-          boxShadow: '0px 2px 8px rgba(27,31,39,0.06)'
+          boxShadow: 'none'
         }}>
           <Radar data={chartData} options={chartOptions} />
 
           <Box sx={{
             mt: 4,
             mb: 2,
-            background: "#fff",
+            background: "transparent",
             borderRadius: 3,
             p: 3,
-            boxShadow: '0px 2px 8px rgba(27,31,39,0.08)'
+            boxShadow: 'none',
+            textAlign: 'center'
           }}>
             <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-              {name}님의 가치로운 삶 점수
+              {userName}님의 가치로운 삶 점수
             </Typography>
             <Box sx={{
               fontSize: '2rem',
@@ -175,15 +227,15 @@ function VLQResult() {
               {results.score.toFixed(1)}
             </Box>
             <Typography sx={{ mb: 1 }}>
-              당신에게 중요한 가치는 <span style={{ color: "#1292EE", fontWeight: "bold" }}>{topValue}</span>입니다.
+              당신에게 중요한 가치는<br></br> <span style={{ color: "#1292EE", fontWeight: "bold" }}>{topValue}</span>
             </Typography>
             <Typography>
-              중요하지만 잘 실천하지 못하는 가치는 <span style={{ color: "#A678FF", fontWeight: "bold" }}>{lowCommit}</span>입니다. <br />
+              중요하지만 잘 실천하지 못하는 가치는<br></br> <span style={{ color: "#A678FF", fontWeight: "bold" }}>{lowCommit}</span> <br />
               {lowCommit === "없습니다" ? "모두 잘 실천하고 있는 편이네요." : ""}
             </Typography>
           </Box>
 
-          <Accordion sx={{ mt: 4 }}>
+          <Accordion expanded={true} sx={{ mt: 4 }}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography sx={{ fontWeight: 'bold' }}>가치 실천 자세히 보기</Typography>
             </AccordionSummary>
@@ -267,55 +319,6 @@ function VLQResult() {
           </Accordion>
         </Box>
       </Container>
-
-      <Box sx={{
-        position: 'fixed',
-        bottom: '4%',
-        left: '5%',
-        right: '5%',
-        display: 'flex',
-        justifyContent: 'center',
-        zIndex: 9999,
-        backgroundColor: 'rgba(255,255,255,0)',
-      }}>
-        <Button
-          variant="outlined"
-          size="large"
-          onClick={goBack}
-          sx={{
-            mr: 2,
-            height: '3.625rem',
-            fontWeight: 'bold',
-            borderRadius: 50,
-            color: '#1B1F27',
-            border: '2px solid #1B1F27'
-          }}
-        >
-          이전
-        </Button>
-        <Button
-          variant="contained"
-          size="large"
-          onClick={goHome}
-          sx={{
-            height: '3.625rem',
-            backgroundColor: '#1B1F27',
-            fontWeight: 'bold',
-            borderRadius: 50,
-            boxShadow: '0 4px 12px rgba(27, 31, 39, 0.3)',
-            '&:hover': {
-              backgroundColor: '#2A2F38',
-              boxShadow: '0 6px 16px rgba(27, 31, 39, 0.4)',
-            },
-            '&:disabled': {
-              backgroundColor: '#e0e0e0',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-            }
-          }}
-        >
-          확인
-        </Button>
-      </Box>
     </>
   );
 }

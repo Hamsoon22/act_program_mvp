@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import loginImg from "./login.png";
+import sirenIcon from "./siren.svg";
 import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
+import FloatingButton from "./components/FloatingButton";
 import { motion } from "framer-motion";
 import { CSSTransition } from 'react-transition-group';
 import HeaderEditable from "./components/HeaderEditable";
@@ -208,6 +210,18 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
   useEffect(() => { setDiary(localStorage.getItem(diaryKey) || ""); }, [diaryKey]);
   const hasVideo = Boolean(item.videoUrl);
 
+  // 모달이 열릴 때 body 스크롤 방지
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!isFeature) return;
     if (!item.featureKey) {
@@ -281,7 +295,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
                   }
                 }}
               >
-                진단하기 바로가기
+                바로가기
                 <ArrowRight size={18} style={{marginLeft: 2}} />
               </Button>
             )}
@@ -403,7 +417,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
                   }
                 }}
               >
-                진단하기 바로가기
+                바로가기
               </Button>
             )}
           </>
@@ -422,6 +436,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
                 url={item.videoUrl}
                 onClose={() => setOpen(false)}
                 description={item.description || item.subtitle || item.title}
+                open={open}
               /> }
     </div>
   );
@@ -595,13 +610,15 @@ function getYouTubeId(url = "") {
   }
 }
 // ----- VideoModal -----
-function VideoModal({ url, onClose, description }) {
+function VideoModal({ url, onClose, description, open }) {
   const yt = getYouTubeId(url);
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-2 sm:p-4" onClick={onClose}>
-      <div className="w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 grid place-items-center bg-black/60 p-2 sm:p-4" 
+         style={{ zIndex: 10001, overflowY: 'auto' }} 
+         onClick={onClose}>
+      <div className="w-full max-w-3xl my-auto" onClick={(e) => e.stopPropagation()}>
         <Card>
-          <CardContent>
+          <CardContent style={{ maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
             {yt ? (
               <div className="aspect-video w-full overflow-hidden rounded-xl">
                 <iframe
@@ -617,13 +634,25 @@ function VideoModal({ url, onClose, description }) {
               <video className="w-full rounded-xl" src={url} controls />
             ) : (
               <div className="text-sm sm:text-base text-gray-600">
-                이 링크는 임베드할 수 없어요. <a className="text-sky-600 underline" href={url} target="_blank" rel="noreferrer">새 탭에서 열기</a>
+                <strong>영상 재생을 위해 유튜브로 이동됩니다.</strong> <a className="text-red-600 underline" href={url} target="_blank" rel="noreferrer">영상 보기</a>
               </div>
             )}
 
             {/* === 설명 추가 === */}
             {description && (
-              <div className="mt-4 text-gray-700 whitespace-pre-line text-base">{description}</div>
+              <div className="mt-4 text-gray-700 whitespace-pre-line text-base">
+                {description.split('\n').map((line, index) => {
+                  // A., B., 또는 "호흡 명상"으로 시작하는 줄을 볼드 처리
+                  if (line.trim().startsWith('A.') || line.trim().startsWith('B.') || line.trim() === '호흡 명상') {
+                    return (
+                      <div key={index} style={{ fontWeight: 'bold', marginTop: index > 0 ? '1rem' : 0 }}>
+                        {line}
+                      </div>
+                    );
+                  }
+                  return <div key={index}>{line || '\u00A0'}</div>;
+                })}
+              </div>
             )}
 
             <div className="mt-4 text-right"><Button variant="outline" onClick={onClose}>닫기</Button></div>
@@ -712,7 +741,7 @@ function AppHome() {
           icon: "music",
           type: "content",
           title: "호흡 및 일상 명상하기",
-          subtitle: "링크 임베드",
+          subtitle: "명상 영상",
           videoUrl: "https://www.youtube.com/embed/BY6pJb5zEQA",
            // 설명 추가!
            description: `
@@ -739,8 +768,8 @@ function AppHome() {
         {
           icon: "music",
           type: "content",
-          title: "mindfulness 영상 보기",
-          subtitle: "마인드풀니스 유튜브",
+          title: "Mindfulness 영상보기",
+          subtitle: "마인드풀니스 영상",
           videoUrl: "https://www.youtube.com/embed/3nwwKbM_vJc",
           description: `A. Erik Satie - Gymnopédie No.1 (연주: 피아니스트 문선영)
 
@@ -765,7 +794,7 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
         {
           icon: "leaf",
           type: "feature",
-          title: "나뭇잎배 보내기",
+          title: "나뭇잎 배 띄우기",
           featureKey: "leaf",
           subtitle: "나뭇잎 배 띄우기",
         }
@@ -778,14 +807,14 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
         {
           icon: "check",
           type: "assessment",
-          title: "VLQ 진단하기",
-          subtitle: "내 삶의 가치 찾기",
+          title: "VLQ (Valued Living Questionnaire)",
+          subtitle: "진단하기",
           link: "/vlq-survey",
         },
         {
           icon: "pencil",
           type: "feature",
-          title: "일기쓰기",
+          title: "일기 쓰기",
           featureKey: "diary",
           subtitle: "일기 쓰기 기능",
         }
@@ -794,14 +823,22 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
     {
       weekLabel: "4주차",
       dateTag: null,
-      items: [
-        {
-          icon: "gift",
-          type: "milestone",
-          title: "수고하셨습니다.",
-          subtitle: "완주!"
-        }
-      ]
+ items: [
+  {
+    icon: "gift",
+    type: "milestone",
+    title: "수고하셨습니다 :)",
+    subtitle: "완주!"
+  },
+  {
+    icon: "check",
+    type: "assessment",
+    title: "모바일 웹과 영상 콘텐츠 평가",
+    subtitle: "감사합니다!",
+    link: "https://forms.gle/UguVZPHHPmHE6epY9"
+  }
+]
+      
     }
   ];
 
@@ -1004,6 +1041,7 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
           onOpenProfile={() => navigate('/profile')}
           onLogout={onLogout}
         />
+        <FloatingButton />
         <BottomNavigation
           activeTab={activeTab}
           onTabChange={handleTabChange}
