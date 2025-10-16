@@ -15,7 +15,7 @@ export default function ProtectedRoute({ children, required = "any" }) {
 
   if (required !== "any") {
     if (required === "counselor" && role !== "counselor") {
-      return <Navigate to="/hub" replace />;
+      return <Navigate to="/" replace />;
     }
     if (required === "client" && role !== "client") {
       return <Navigate to="/" replace />;
