@@ -24,6 +24,7 @@ import ResultPage from "./ResultPage";
 import MBISurvey from "./MBISurvey";
 import MBIResultPage from "./MBIResultPage";
 import VoiceRec from "./VoiceRec";
+import Diary from "./Diary";
 import DiaryList from "./DiaryList";
 import DiaryView from "./DiaryView";
 import DiaryEdit from "./DiaryEdit";
@@ -84,7 +85,7 @@ const FEATURES = {
   survey: { label: "Rumination Scale", path: "/survey" },
   mbi:    { label: "MBI 설문",         path: "/mbi-survey" },
   voice:  { label: "목소리 녹음",       path: "/voice-rec" },
-  diary:  { label: "일기 쓰기",         path: "/diary" },
+  diary:  { label: "일기 쓰기",         path: "/diary-list" },
   leaf:   { label: "나뭇잎 배 띄우기",   path: "/leaf-ship" },
 };
 
@@ -1007,6 +1008,7 @@ export default function App() {
         <Route path="/vlq-survey" element={<ProtectedRoute><VLQSurvey/></ProtectedRoute>} />
         <Route path="/vlq-result" element={<ProtectedRoute><VLQResult/></ProtectedRoute>} />
         <Route path="/voice-rec" element={<ProtectedRoute><VoiceRec /></ProtectedRoute>} />
+        <Route path="/diary" element={<ProtectedRoute><Diary /></ProtectedRoute>} />
         <Route path="/diary-list" element={<ProtectedRoute><DiaryList /></ProtectedRoute>} />
         <Route path="/diary-view" element={<ProtectedRoute><DiaryView /></ProtectedRoute>} />
         <Route path="/diary-edit" element={<ProtectedRoute><DiaryEdit /></ProtectedRoute>} />
