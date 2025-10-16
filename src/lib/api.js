@@ -88,27 +88,32 @@ export const api = {
 
   /* ---------- User Diary ---------- */
 
-  listDiaries() {
-    return request('/api/user/v1/diary/list').then(unwrap);
-  },
-
-  createDiary(programId, content) {
-    return request('/api/user/v1/diary', {
-      method: 'POST',
-      body: JSON.stringify({ programId, content }),
-    }).then(unwrap);
-  },
-
-  updateDiary(id, content) {
-    return request(`/api/user/v1/diary/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ content }),
-    }).then(unwrap);
-  },
-
-  deleteDiary(id) {
-    return request(`/api/user/v1/diary/${id}`, { method: 'DELETE' }).then(unwrap);
-  },
+ // 일기 전체 목록
+ listDiaries() {
+  return request('/api/user/v1/diary/list/all').then(unwrap);
+},
+// 일기 상세
+getDiary(id) {
+  return request(`/api/user/v1/diary/${id}`).then(unwrap);
+},
+// 일기 저장
+createDiary({ programId, diaryDate, diaryTitle, diaryContent }) {
+  return request('/api/user/v1/diary', {
+    method: 'POST',
+    body: JSON.stringify({ programId, diaryDate, diaryTitle, diaryContent }),
+  }).then(unwrap);
+},
+// 일기 수정
+updateDiary(id, { programId, diaryDate, diaryTitle, diaryContent }) {
+  return request(`/api/user/v1/diary/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ programId, diaryDate, diaryTitle, diaryContent }),
+  }).then(unwrap);
+},
+// 일기 삭제
+deleteDiary(id) {
+  return request(`/api/user/v1/diary/${id}`, { method: 'DELETE' }).then(unwrap);
+},
 
   // ✅ 녹음 업로드 (multipart) — Content-Type 자동 설정 금지
   uploadRecord(programId, file) {
