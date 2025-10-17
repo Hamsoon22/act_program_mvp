@@ -436,6 +436,7 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
                 url={item.videoUrl}
                 onClose={() => setOpen(false)}
                 description={item.description || item.subtitle || item.title}
+                additionalLinks={item.additionalLinks}
                 open={open}
               /> }
     </div>
@@ -610,7 +611,7 @@ function getYouTubeId(url = "") {
   }
 }
 // ----- VideoModal -----
-function VideoModal({ url, onClose, description, open }) {
+function VideoModal({ url, onClose, description, additionalLinks, open }) {
   const yt = getYouTubeId(url);
   return (
     <div className="fixed inset-0 grid place-items-center bg-black/60 p-2 sm:p-4" 
@@ -634,7 +635,31 @@ function VideoModal({ url, onClose, description, open }) {
               <video className="w-full rounded-xl" src={url} controls />
             ) : (
               <div className="text-sm sm:text-base text-gray-600">
-                <strong>영상 재생을 위해 유튜브로 이동됩니다.</strong> <a className="text-red-600 underline" href={url} target="_blank" rel="noreferrer">영상 보기</a>
+                <strong>영상 재생을 위해 유튜브로 이동됩니다.</strong>
+                <div className="mt-2 space-y-1">
+                  <div>
+                    <a 
+                      className="text-red-600 underline hover:text-red-800" 
+                      href={url} 
+                      target="_blank" 
+                      rel="noreferrer"
+                    >
+                      #가이드 영상
+                    </a>
+                  </div>
+                  {additionalLinks && additionalLinks.map((link, idx) => (
+                    <div key={idx}>
+                      <a 
+                        className="text-red-600 underline hover:text-red-800" 
+                        href={link.url} 
+                        target="_blank" 
+                        rel="noreferrer"
+                      >
+                        #{link.label}
+                      </a>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -742,7 +767,10 @@ function AppHome() {
           type: "content",
           title: "호흡 및 일상 명상하기",
           subtitle: "명상 영상",
-          videoUrl: "https://www.youtube.com/embed/BY6pJb5zEQA",
+          videoUrl: "https://youtube.com/shorts/w_u6uOWZkso",
+          additionalLinks: [
+            { label: "실전 영상", url: "https://youtu.be/fgHpHSE1iIM" }
+          ],
            // 설명 추가!
            description: `
         호흡 명상
