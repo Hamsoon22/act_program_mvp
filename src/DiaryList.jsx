@@ -5,12 +5,14 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { CSSTransition } from 'react-transition-group';
 import backIcon from './back.svg';
+import { api } from './lib/api';
 
 export default function DiaryList() {
   const [scrolled, setScrolled] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [diaries, setDiaries] = useState([]);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   // 애니메이션 시작
@@ -21,15 +23,35 @@ export default function DiaryList() {
     return () => clearTimeout(timer);
   }, []);
 
-  // 로컬스토리지에서 일기 목록 가져오기
+  // 일기 목록 불러오기 (서버 또는 localStorage)
   useEffect(() => {
-    const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
-    
-    // 샘플 일기 데이터
-    const sampleDiary = {
-      id: 'sample',
-      title: '샘플 일기',
-      content: `오늘은 정말 좋은 하루였다. 아침에 일어나서 창밖을 보니 햇살이 너무 따뜻했다.
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      // 서버에서 일기 목록 불러오기
+      api.listDiaries().then((data) => {
+        // 서버 데이터 구조에 맞게 변환
+        const diariesFromServer = (Array.isArray(data) ? data : []).map(diary => ({
+          id: diary.id,
+          title: diary.diaryTitle || '',
+          content: diary.diaryContent || '',
+          date: diary.diaryDate || '',
+          time: '', // 필요시 서버에서 제공받으면 넣기
+          backgroundColor: diary.backgroundColor || '#ffffff', // 컬럼 있으면
+          isSample: false
+        }));
+        setDiaries(diariesFromServer);
+      }).catch((e) => {
+        setError('목록 불러오기 실패: ' + (e.message || ''));
+        setDiaries([]);
+      });
+    } else {
+      // 로그인 안한 경우 localStorage에서
+      const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
+      // 샘플 일기 추가
+      const sampleDiary = {
+        id: 'sample',
+        title: '샘플 일기',
+        content: `오늘은 정말 좋은 하루였다. 아침에 일어나서 창밖을 보니 햇살이 너무 따뜻했다.
 
 점심에는 친구들과 함께 맛있는 음식을 먹었고, 오후에는 공원을 산책했다. 저녁에는 가족들과 함께 영화를 보며 즐거운 시간을 보냈다.
 
@@ -46,18 +68,17 @@ export default function DiaryList() {
 오늘도 감사한 하루였다. 이런 평범하지만 소중한 일상이 계속되었으면 좋겠다.
 
 끝으로, 이 일기를 읽는 미래의 나에게 하고 싶은 말은, 항상 지금의 감사한 마음을 잊지 말라는 것이다. 어떤 어려움이 와도 이런 작은 행복들을 기억하며 힘내길 바란다.`,
-      date: '2024년 1월 1일',
-      time: '오후 6:30',
-      backgroundColor: '#FFF8E7',
-      isSample: true
-    };
-    
-    // 샘플 일기가 없으면 추가
-    const hasample = savedDiaries.some(diary => diary.isSample);
-    if (!hasample) {
-      setDiaries([sampleDiary, ...savedDiaries]);
-    } else {
-      setDiaries(savedDiaries);
+        date: '2024년 1월 1일',
+        time: '오후 6:30',
+        backgroundColor: '#FFF8E7',
+        isSample: true
+      };
+      const hasample = savedDiaries.some(diary => diary.isSample);
+      if (!hasample) {
+        setDiaries([sampleDiary, ...savedDiaries]);
+      } else {
+        setDiaries(savedDiaries);
+      }
     }
   }, []);
 
@@ -160,6 +181,11 @@ export default function DiaryList() {
           </AppBar>
 
           <Container maxWidth="sm" sx={{ py: 2, pb: 4 }}>
+            {error && (
+              <Typography color="error" sx={{ mb: 2 }}>
+                {error}
+              </Typography>
+            )}
             {diaries.length === 0 ? (
               // 일기가 없을 때 표시
               <Box sx={{ 
@@ -271,12 +297,24 @@ export default function DiaryList() {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (window.confirm('정말로 이 일기를 삭제하시겠습니까?')) {
-                              const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
-                              const updatedDiaries = savedDiaries.filter(d => d.id !== diary.id);
-                              localStorage.setItem('diaries', JSON.stringify(updatedDiaries));
-
-                              setDiaries(updatedDiaries);
-                              alert('일기가 삭제되었습니다.');
+                              if (localStorage.getItem('accessToken')) {
+                                // 서버 삭제 구현 필요 (api.deleteDiary)
+                                api.deleteDiary(diary.id)
+                                  .then(() => {
+                                    setDiaries((prev) => prev.filter(d => d.id !== diary.id));
+                                    alert('일기가 삭제되었습니다.');
+                                  })
+                                  .catch((e) => {
+                                    alert('삭제 실패: ' + (e.message || ''));
+                                  });
+                              } else {
+                                // localStorage에서 삭제
+                                const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
+                                const updatedDiaries = savedDiaries.filter(d => d.id !== diary.id);
+                                localStorage.setItem('diaries', JSON.stringify(updatedDiaries));
+                                setDiaries(updatedDiaries);
+                                alert('일기가 삭제되었습니다.');
+                              }
                             }
                           }}
                           sx={{
