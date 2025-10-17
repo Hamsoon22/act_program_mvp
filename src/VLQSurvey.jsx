@@ -308,7 +308,7 @@ function VLQSurvey() {
       
       <Container maxWidth="md" sx={{ py: 0, pb: 10, pt: 0, mt: 0 }}>
         <Box sx={{ 
-          background: 'linear-gradient(135deg, #DFEFF6 0%, #DFEFF6 38%, #ffefdfff 90%)',
+          background: 'linear-gradient(135deg, #DFEFF6 0%, #DFEFF6 38%, #dfffeaff 90%)',
           px: 3,
           pt: 11,
           pb: 5, 
@@ -368,7 +368,7 @@ function VLQSurvey() {
                 borderRadius: 50,
                 color: '#1B1F27',
                 backgroundColor: 'white',
-                border: '2px solid #1B1F27',
+                border: '2px solid #e0e0e0',
                 '&:hover': {
                   backgroundColor: '#f5f5f5',
                 }
@@ -417,7 +417,7 @@ function VLQSurvey() {
                 borderRadius: 50,
                 color: '#1B1F27',
                 backgroundColor: 'white',
-                border: '2px solid #1B1F27',
+                border: '2px solid #e0e0e0',
                 '&:hover': {
                   backgroundColor: '#f5f5f5',
                 }
