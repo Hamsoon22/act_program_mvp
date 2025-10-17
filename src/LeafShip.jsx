@@ -92,7 +92,6 @@ export default function LeafShip() {
           <video
             ref={videoRef}
             autoPlay
-            muted
             playsInline
             preload="auto"
             onLoadedData={() => console.log('Video loaded successfully')}
@@ -103,6 +102,12 @@ export default function LeafShip() {
               console.error('Video error details:', e.target.error);
             }}
             onLoadedMetadata={() => console.log('Video metadata loaded')}
+            onEnded={() => {
+              console.log('Video ended, returning to initial modal');
+              setModalOpen(true);
+              setVideoPlaying(false);
+              setMessage(''); // 메시지도 초기화
+            }}
             style={{
               position: 'absolute',
               top: 0,
@@ -115,7 +120,7 @@ export default function LeafShip() {
               transition: 'opacity 0.5s ease-in-out'
             }}
           >
-            <source src="/act_program_mvp/leaf_v2.mp4" type="video/mp4" />
+            <source src="/act_program_mvp/leaf_v4.mp4" type="video/mp4" />
             브라우저가 비디오를 지원하지 않습니다.
           </video>
 
