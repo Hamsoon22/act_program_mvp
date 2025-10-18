@@ -78,11 +78,9 @@ export default function VoiceRec() {
           let sum = 0;
           const start = i * step;
           const end = Math.min(start + step, bufferLength);
-
           for (let j = start; j < end; j++) {
             sum += dataArray[j];
           }
-
           const average = sum / (end - start);
           const height = Math.max(20, (average / 255) * 60 + 20);
           newAudioData.push(height);
@@ -240,78 +238,65 @@ export default function VoiceRec() {
 
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          setRecordedChunks(prev => {
-            const updated = [...prev, event.data];
-            return updated;
-          });
+          setRecordedChunks(prev => [...prev, event.data]);
         }
       };
 
       recorder.onstop = async () => {
-        setTimeout(async () => {
-          setRecordedChunks(async currentChunks => {
-            if (currentChunks.length === 0) {
-              alert('녹음된 데이터가 없습니다. 마이크 권한을 확인해주세요.');
-              return currentChunks;
-            }
-            const finalMimeType = recorder.mimeType || mimeType;
-            const audioBlob = new Blob(currentChunks, { type: finalMimeType });
-            if (audioBlob.size === 0) {
-              alert('녹음 데이터가 비어있습니다.');
-              return currentChunks;
-            }
-      
-            // webm을 wav로 변환
-            let wavBlob;
-            try {
-              wavBlob = await convertWebmToWav(audioBlob);
-            } catch (err) {
-              alert('webm → wav 변환 실패: ' + (err.message || err));
-              return currentChunks;
-            }
-      
-            console.log(wavBlob.type, wavBlob);
-      
-            // 15MB 이하만 업로드
-            if (wavBlob.size > 15 * 1024 * 1024) {
-              alert('파일 크기가 15MB를 초과합니다.');
-              return currentChunks;
-            }
-      
-            // Blob URL 생성
-            const audioUrl = URL.createObjectURL(wavBlob);
-            // 반드시 먼저 wavFile 선언!
-            const wavFile = new File([wavBlob], 'voice.wav', { type: 'audio/wav' });
-            console.log(wavFile.type, wavFile);
-      
-            // 서버에 업로드
-            try {
-              await api.uploadRecord(getProgramId(), wavFile);
-              alert('녹음 파일(wav)이 서버에 저장되었습니다!');
-            } catch (e) {
-              setUploadError('녹음 파일 서버 저장 실패: ' + (e.message || ''));
-              alert('녹음 파일 서버 저장 실패: ' + (e.message || ''));
-              return currentChunks;
-            }
-      
-            const newRecording = {
-              id: Date.now(),
-              number: recordingCounter,
-              duration: recordingTime,
-              date: new Date().toLocaleString(),
-              audioUrl: audioUrl,
-              blob: wavFile,
-              mimeType: 'audio/wav'
-            };
-      
-            setRecordings(prev => {
-              const updated = [...prev, newRecording];
-              return updated;
-            });
-      
-            return [];
-          });
-        }, 100);
+        // recordedChunks 상태 바로 사용
+        const currentChunks = [...recordedChunks];
+        setRecordedChunks([]); // 초기화
+
+        if (currentChunks.length === 0) {
+          alert('녹음된 데이터가 없습니다. 마이크 권한을 확인해주세요.');
+          return;
+        }
+        const finalMimeType = recorder.mimeType || mimeType;
+        const audioBlob = new Blob(currentChunks, { type: finalMimeType });
+        if (audioBlob.size === 0) {
+          alert('녹음 데이터가 비어있습니다.');
+          return;
+        }
+
+        // webm을 wav로 변환
+        let wavBlob;
+        try {
+          wavBlob = await convertWebmToWav(audioBlob);
+        } catch (err) {
+          alert('webm → wav 변환 실패: ' + (err.message || err));
+          return;
+        }
+
+        if (wavBlob.size > 15 * 1024 * 1024) {
+          alert('파일 크기가 15MB를 초과합니다.');
+          return;
+        }
+
+        const audioUrl = URL.createObjectURL(wavBlob);
+        const wavFile = new File([wavBlob], 'voice.wav', { type: 'audio/wav' });
+
+        // 서버에 업로드
+        try {
+          await api.uploadRecord(getProgramId(), wavFile);
+          alert('녹음 파일(wav)이 서버에 저장되었습니다!');
+        } catch (e) {
+          setUploadError('녹음 파일 서버 저장 실패: ' + (e.message || ''));
+          alert('녹음 파일 서버 저장 실패: ' + (e.message || ''));
+          return;
+        }
+
+        const newRecording = {
+          id: Date.now(),
+          number: recordingCounter,
+          duration: recordingTime,
+          date: new Date().toLocaleString(),
+          audioUrl: audioUrl,
+          blob: wavFile,
+          mimeType: 'audio/wav'
+        };
+
+        setRecordings(prev => [...prev, newRecording]);
+        setRecordingCounter(prev => prev + 1);
       };
 
       setMediaRecorder(recorder);
@@ -348,7 +333,6 @@ export default function VoiceRec() {
     setShowRecordingModal(false);
     setAnalyser(null);
     setAudioData(new Array(30).fill(20));
-    setRecordingCounter(prev => prev + 1);
     // 서버 업로드는 onstop에서 wav 변환 후 처리됨!
   };
 
