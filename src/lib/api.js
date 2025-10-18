@@ -120,7 +120,7 @@ deleteDiary(id) {
     const fd = new FormData();
     fd.append('programId', programId);
     fd.append('file', file);
-    return request('/api/user/v1/record', {
+    return request('/api/user/v1/record/upload', {
       method: 'POST',
       body: fd, // FormData면 request가 헤더 자동 처리
     }).then(unwrap);
