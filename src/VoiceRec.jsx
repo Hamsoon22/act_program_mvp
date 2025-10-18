@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Container, Typography, Button, Box, AppBar, Toolbar, IconButton, Modal, Backdrop,
   Menu, MenuItem, ListItemIcon, ListItemText
 } from '@mui/material';
-import { Mic, Refresh, Stop, PlayArrow, Pause, MoreVert, Save, Delete } from '@mui/icons-material';
+import { Mic, Refresh, PlayArrow, Pause, MoreVert, Save, Delete } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { CSSTransition } from 'react-transition-group';
 import backIcon from './back.svg';
@@ -13,39 +13,36 @@ export default function VoiceRec() {
   const [scrolled, setScrolled] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [recordings, setRecordings] = useState([]); // 녹음 내역 상태
-  const [isRecording, setIsRecording] = useState(false); // 녹음 상태
-  const [recordingTime, setRecordingTime] = useState(0); // 녹음 시간 (초)
-  const [showRecordingModal, setShowRecordingModal] = useState(false); // 녹음 모달 표시
-  const [audioData, setAudioData] = useState(new Array(30).fill(0)); // 오디오 스펙트럼 데이터
+  const [recordings, setRecordings] = useState([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [showRecordingModal, setShowRecordingModal] = useState(false);
+  const [audioData, setAudioData] = useState(new Array(30).fill(0));
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [audioStream, setAudioStream] = useState(null);
   const [audioContext, setAudioContext] = useState(null);
   const [analyser, setAnalyser] = useState(null);
-  const [recordedChunks, setRecordedChunks] = useState([]); // 녹음된 오디오 데이터
-  const [playingId, setPlayingId] = useState(null); // 현재 재생 중인 녹음 ID
-  const [currentAudio, setCurrentAudio] = useState(null); // 현재 재생 중인 Audio 객체
-  const [isPaused, setIsPaused] = useState(false); // 일시정지 상태
-  const [anchorEl, setAnchorEl] = useState(null); // 더보기 메뉴 앵커
-  const [selectedRecordingId, setSelectedRecordingId] = useState(null); // 선택된 녹음 ID
-  const [recordingCounter, setRecordingCounter] = useState(1); // 녹음 순서 카운터
+  const [playingId, setPlayingId] = useState(null);
+  const [currentAudio, setCurrentAudio] = useState(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedRecordingId, setSelectedRecordingId] = useState(null);
+  const [recordingCounter, setRecordingCounter] = useState(1);
   const [uploadError, setUploadError] = useState('');
   const navigate = useNavigate();
 
-  // 프로그램 ID 없으면 1로 처리
+  // finalChunks: 녹음 데이터 임시 저장 (useRef 사용해 렌더링 간 유지)
+  const finalChunksRef = useRef([]);
+
   const getProgramId = () => 1;
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, 100);
+    const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -53,9 +50,7 @@ export default function VoiceRec() {
   useEffect(() => {
     let interval = null;
     if (isRecording) {
-      interval = setInterval(() => {
-        setRecordingTime(time => time + 1);
-      }, 1000);
+      interval = setInterval(() => setRecordingTime(time => time + 1), 1000);
     } else {
       clearInterval(interval);
     }
@@ -78,9 +73,7 @@ export default function VoiceRec() {
           let sum = 0;
           const start = i * step;
           const end = Math.min(start + step, bufferLength);
-          for (let j = start; j < end; j++) {
-            sum += dataArray[j];
-          }
+          for (let j = start; j < end; j++) sum += dataArray[j];
           const average = sum / (end - start);
           const height = Math.max(20, (average / 255) * 60 + 20);
           newAudioData.push(height);
@@ -90,15 +83,9 @@ export default function VoiceRec() {
         animationFrame = requestAnimationFrame(updateAudioData);
       }
     };
-
-    if (isRecording && analyser) {
-      updateAudioData();
-    }
-
+    if (isRecording && analyser) updateAudioData();
     return () => {
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
-      }
+      if (animationFrame) cancelAnimationFrame(animationFrame);
     };
   }, [isRecording, analyser]);
 
@@ -108,7 +95,6 @@ export default function VoiceRec() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // WAV 변환 함수
   const convertWebmToWav = async (webmBlob) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -117,8 +103,6 @@ export default function VoiceRec() {
           const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
           const arrayBuffer = e.target.result;
           const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
-          // WAV 변환
           const wavBlob = audioBufferToWav(audioBuffer);
           resolve(wavBlob);
         } catch (err) {
@@ -133,32 +117,23 @@ export default function VoiceRec() {
   const audioBufferToWav = (audioBuffer) => {
     const numChannels = audioBuffer.numberOfChannels;
     const sampleRate = audioBuffer.sampleRate;
-    const format = 1; // PCM
+    const format = 1;
     const bitDepth = 16;
-
     let result;
     if (numChannels === 2) {
       result = interleave(audioBuffer.getChannelData(0), audioBuffer.getChannelData(1));
     } else {
       result = audioBuffer.getChannelData(0);
     }
-
     const buffer = new ArrayBuffer(44 + result.length * 2);
     const view = new DataView(buffer);
-
     function writeString(view, offset, string) {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-      }
+      for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
     }
-
     function interleave(inputL, inputR) {
       const length = inputL.length + inputR.length;
       const result = new Float32Array(length);
-
-      let index = 0,
-        inputIndex = 0;
-
+      let index = 0, inputIndex = 0;
       while (index < length) {
         result[index++] = inputL[inputIndex];
         result[index++] = inputR[inputIndex];
@@ -166,7 +141,6 @@ export default function VoiceRec() {
       }
       return result;
     }
-
     writeString(view, 0, 'RIFF');
     view.setUint32(4, 36 + result.length * 2, true);
     writeString(view, 8, 'WAVE');
@@ -180,13 +154,11 @@ export default function VoiceRec() {
     view.setUint16(34, bitDepth, true);
     writeString(view, 36, 'data');
     view.setUint32(40, result.length * 2, true);
-
     let offset = 44;
     for (let i = 0; i < result.length; i++, offset += 2) {
       let s = Math.max(-1, Math.min(1, result[i]));
       view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
     }
-
     return new Blob([buffer], { type: 'audio/wav' });
   };
 
@@ -199,24 +171,18 @@ export default function VoiceRec() {
           sampleRate: 44100,
         }
       });
-
       setAudioStream(stream);
-      setRecordedChunks([]);
-
+      finalChunksRef.current = [];
       const context = new (window.AudioContext || window.webkitAudioContext)();
       const source = context.createMediaStreamSource(stream);
       const analyserNode = context.createAnalyser();
-
       analyserNode.fftSize = 256;
       analyserNode.smoothingTimeConstant = 0.8;
       source.connect(analyserNode);
-
       setAudioContext(context);
       setAnalyser(analyserNode);
-
       let recorder;
       let mimeType = 'audio/webm';
-
       try {
         if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
           mimeType = 'audio/webm;codecs=opus';
@@ -238,15 +204,13 @@ export default function VoiceRec() {
 
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          setRecordedChunks(prev => [...prev, event.data]);
+          finalChunksRef.current.push(event.data);
         }
       };
 
       recorder.onstop = async () => {
-        // recordedChunks 상태 바로 사용
-        const currentChunks = [...recordedChunks];
-        setRecordedChunks([]); // 초기화
-
+        const currentChunks = finalChunksRef.current;
+        finalChunksRef.current = [];
         if (currentChunks.length === 0) {
           alert('녹음된 데이터가 없습니다. 마이크 권한을 확인해주세요.');
           return;
@@ -257,8 +221,6 @@ export default function VoiceRec() {
           alert('녹음 데이터가 비어있습니다.');
           return;
         }
-
-        // webm을 wav로 변환
         let wavBlob;
         try {
           wavBlob = await convertWebmToWav(audioBlob);
@@ -266,16 +228,12 @@ export default function VoiceRec() {
           alert('webm → wav 변환 실패: ' + (err.message || err));
           return;
         }
-
         if (wavBlob.size > 15 * 1024 * 1024) {
           alert('파일 크기가 15MB를 초과합니다.');
           return;
         }
-
         const audioUrl = URL.createObjectURL(wavBlob);
         const wavFile = new File([wavBlob], 'voice.wav', { type: 'audio/wav' });
-
-        // 서버에 업로드
         try {
           await api.uploadRecord(getProgramId(), wavFile);
           alert('녹음 파일(wav)이 서버에 저장되었습니다!');
@@ -284,7 +242,6 @@ export default function VoiceRec() {
           alert('녹음 파일 서버 저장 실패: ' + (e.message || ''));
           return;
         }
-
         const newRecording = {
           id: Date.now(),
           number: recordingCounter,
@@ -294,13 +251,12 @@ export default function VoiceRec() {
           blob: wavFile,
           mimeType: 'audio/wav'
         };
-
         setRecordings(prev => [...prev, newRecording]);
         setRecordingCounter(prev => prev + 1);
       };
 
       setMediaRecorder(recorder);
-      recorder.start(1000);
+      recorder.start();
 
       setIsRecording(true);
       setRecordingTime(0);
@@ -333,12 +289,11 @@ export default function VoiceRec() {
     setShowRecordingModal(false);
     setAnalyser(null);
     setAudioData(new Array(30).fill(20));
-    // 서버 업로드는 onstop에서 wav 변환 후 처리됨!
   };
 
   const handleRestartRecording = () => {
     setRecordingTime(0);
-    setRecordedChunks([]);
+    finalChunksRef.current = [];
   };
 
   const handlePlayRecording = (recording) => {
@@ -383,7 +338,7 @@ export default function VoiceRec() {
         setCurrentAudio(null);
         setIsPaused(false);
       });
-      audio.addEventListener('error', (e) => {
+      audio.addEventListener('error', () => {
         setPlayingId(null);
         setCurrentAudio(null);
         alert('오디오 오류 발생');
@@ -442,9 +397,7 @@ export default function VoiceRec() {
 
   const handleBackClick = () => {
     setIsExiting(true);
-    setTimeout(() => {
-      navigate('/', { replace: true });
-    }, 250);
+    setTimeout(() => navigate('/', { replace: true }), 250);
   };
 
   return (
@@ -471,77 +424,37 @@ export default function VoiceRec() {
           }
         `}
       </style>
-
-      <CSSTransition
-        in={isVisible && !isExiting}
-        timeout={250}
-        classNames="page"
-        appear
-      >
+      <CSSTransition in={isVisible && !isExiting} timeout={250} classNames="page" appear>
         <Box sx={{
           opacity: isVisible && !isExiting ? 1 : 0,
           transition: 'all 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-          margin: 0,
-          padding: 0,
-          width: '100%',
-          minHeight: '100vh',
-          backgroundColor: 'white',
-          overflowX: 'hidden',
-          maxWidth: '100vw'
+          margin: 0, padding: 0, width: '100%', minHeight: '100vh',
+          backgroundColor: 'white', overflowX: 'hidden', maxWidth: '100vw'
         }}>
-          <AppBar
-            position="static"
+          <AppBar position="static"
             sx={{
               backgroundColor: scrolled ? 'white' : 'transparent',
               boxShadow: scrolled ? 2 : 0,
               transition: 'all 0.3s ease',
-              marginTop: 0,
-              paddingTop: 0,
-              top: 0
-            }}
-          >
+              marginTop: 0, paddingTop: 0, top: 0
+            }}>
             <Toolbar sx={{ display: 'flex', alignItems: 'center', px: 0 }}>
               <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-start' }}>
-                <IconButton
-                  onClick={handleBackClick}
-                  sx={{
-                    color: '#1B1F27',
-                    p: 2
-                  }}
-                >
-                  <img
-                    src={backIcon}
-                    alt="뒤로가기"
-                    style={{
-                      width: '46px',
-                      height: '46px'
-                    }}
-                  />
+                <IconButton onClick={handleBackClick} sx={{ color: '#1B1F27', p: 2 }}>
+                  <img src={backIcon} alt="뒤로가기" style={{ width: '46px', height: '46px' }} />
                 </IconButton>
               </Box>
               <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: '#1B1F27',
-                    fontWeight: 'bold',
-                    fontSize: '18px'
-                  }}
-                >
+                <Typography variant="h6"
+                  sx={{ color: '#1B1F27', fontWeight: 'bold', fontSize: '18px' }}>
                   목소리 녹음
                 </Typography>
               </Box>
               <Box sx={{ width: 48 }} />
             </Toolbar>
           </AppBar>
-
-          <Container maxWidth="sm" sx={{
-            py: 2,
-            pb: 12,
-            overflowX: 'hidden',
-            width: '100%',
-            maxWidth: '100vw'
-          }}>
+          <Container maxWidth="sm"
+            sx={{ py: 2, pb: 12, overflowX: 'hidden', width: '100%', maxWidth: '100vw' }}>
             {uploadError && (
               <Typography color="error" sx={{ mb: 2 }}>
                 {uploadError}
@@ -549,110 +462,63 @@ export default function VoiceRec() {
             )}
             {recordings.length === 0 ? (
               <Box sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minHeight: '60vh'
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', minHeight: '60vh'
               }}>
                 <Box sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center'
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center'
                 }}>
                   <Box sx={{
-                    width: 80,
-                    height: 80,
-                    backgroundColor: '#e0e0e0',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mb: 3
+                    width: 80, height: 80, backgroundColor: '#e0e0e0', borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3
                   }}>
                     <Typography sx={{
-                      fontSize: '48px',
-                      color: '#666',
-                      fontWeight: 'bold'
-                    }}>
-                      !
-                    </Typography>
+                      fontSize: '48px', color: '#666', fontWeight: 'bold'
+                    }}>!</Typography>
                   </Box>
                   <Typography variant="body1" sx={{
-                    color: '#999',
-                    fontSize: '16px',
-                    fontWeight: 'medium'
+                    color: '#999', fontSize: '16px', fontWeight: 'medium'
                   }}>
                     ... 녹음 내역이 없습니다 ...
                   </Typography>
                 </Box>
               </Box>
             ) : (
-              <Box sx={{
-                width: '100%',
-                overflowX: 'hidden'
-              }}>
-                {recordings.map((recording, index) => (
+              <Box sx={{ width: '100%', overflowX: 'hidden' }}>
+                {recordings.map((recording) => (
                   <Box key={recording.id} sx={{
-                    mb: 2,
-                    p: 3,
-                    backgroundColor: '#eef1f3ff',
-                    borderRadius: 5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflowX: 'hidden'
+                    mb: 2, p: 3, backgroundColor: '#eef1f3ff', borderRadius: 5,
+                    display: 'flex', alignItems: 'center', gap: 2,
+                    width: '100%', maxWidth: '100%', overflowX: 'hidden'
                   }}>
                     <IconButton
                       onClick={() => handlePlayRecording(recording)}
                       sx={{
                         backgroundColor: playingId === recording.id ? '#c53030' : '#333',
-                        color: 'white',
-                        width: 48,
-                        height: 48,
-                        '&:hover': {
-                          backgroundColor: playingId === recording.id ? '#a02626' : '#555'
-                        }
-                      }}
-                    >
+                        color: 'white', width: 48, height: 48,
+                        '&:hover': { backgroundColor: playingId === recording.id ? '#a02626' : '#555' }
+                      }}>
                       {(playingId === recording.id && !isPaused) ?
                         <Pause sx={{ fontSize: 20 }} /> :
                         <PlayArrow sx={{ fontSize: 20 }} />
                       }
                     </IconButton>
-                    <Box sx={{
-                      flex: 1,
-                      minWidth: 0,
-                      overflow: 'hidden'
-                    }}>
+                    <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                       <Typography variant="body1" sx={{
-                        fontWeight: 'bold',
-                        mb: 0.5,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        fontWeight: 'bold', mb: 0.5, overflow: 'hidden',
+                        textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                       }}>
                         녹음 {recording.number}
                       </Typography>
                       <Typography variant="body2" sx={{
-                        color: '#666',
-                        fontSize: '12px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        color: '#666', fontSize: '12px', overflow: 'hidden',
+                        textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                       }}>
                         {recording.date} • {Math.floor(recording.duration / 60)}:{(recording.duration % 60).toString().padStart(2, '0')}
                       </Typography>
                     </Box>
-                    <IconButton
-                      onClick={(e) => handleMoreClick(e, recording.id)}
-                      sx={{
-                        color: '#666'
-                      }}
-                    >
+                    <IconButton onClick={(e) => handleMoreClick(e, recording.id)}
+                      sx={{ color: '#666' }}>
                       <MoreVert />
                     </IconButton>
                   </Box>
@@ -664,171 +530,93 @@ export default function VoiceRec() {
       </CSSTransition>
       {!showRecordingModal && (
         <Box sx={{
-          position: 'fixed',
-          bottom: 20,
-          left: 0,
-          right: 0,
-          px: 3,
-          zIndex: 1000
+          position: 'fixed', bottom: 20, left: 0, right: 0, px: 3, zIndex: 1000
         }}>
           <Button
-            variant="contained"
-            size="large"
-            startIcon={<Mic />}
+            variant="contained" size="large" startIcon={<Mic />}
             onClick={handleStartRecording}
             sx={{
-              width: '100%',
-              maxWidth: 'sm',
-              mx: 'auto',
-              height: 56,
-              backgroundColor: '#D1052E',
-              color: 'white',
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
-              borderRadius: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'row',
-              gap: 1,
-              '& .MuiButton-startIcon': {
-                marginRight: '8px',
-                marginLeft: 0
-              },
-              '&:hover': {
-                backgroundColor: '#B8041A'
-              }
-            }}
-          >
+              width: '100%', maxWidth: 'sm', mx: 'auto', height: 56,
+              backgroundColor: '#D1052E', color: 'white', fontSize: '1.1rem',
+              fontWeight: 'bold', borderRadius: '28px', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 1,
+              '& .MuiButton-startIcon': { marginRight: '8px', marginLeft: 0 },
+              '&:hover': { backgroundColor: '#B8041A' }
+            }}>
             녹음 시작
           </Button>
         </Box>
       )}
-
       <Modal
         open={showRecordingModal}
         onClose={() => { }}
         BackdropComponent={Backdrop}
         BackdropProps={{
-          sx: {
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(2px)'
-          }
+          sx: { backgroundColor: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(2px)' }
         }}
       >
         <Box sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: '#f8f9fa',
-          borderTopLeftRadius: '20px',
-          borderTopRightRadius: '20px',
-          p: 4,
-          pb: 6,
+          position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: '#f8f9fa',
+          borderTopLeftRadius: '20px', borderTopRightRadius: '20px', p: 4, pb: 6,
           transform: showRecordingModal ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 0.3s ease-in-out',
-          zIndex: 10000
+          transition: 'transform 0.3s ease-in-out', zIndex: 10000
         }}>
           <Box sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100px',
-            mb: 3
+            display: 'flex', justifyContent: 'center', alignItems: 'center',
+            height: '100px', mb: 3
           }}>
-            <Box sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2px'
-            }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
               {audioData.map((height, index) => (
-                <Box
-                  key={index}
+                <Box key={index}
                   sx={{
-                    width: '3px',
-                    height: `${height}px`,
-                    backgroundColor: '#999',
-                    borderRadius: '2px',
-                    transition: 'height 0.1s ease'
+                    width: '3px', height: `${height}px`, backgroundColor: '#999',
+                    borderRadius: '2px', transition: 'height 0.1s ease'
                   }}
                 />
               ))}
             </Box>
           </Box>
-          <Typography variant="h4" sx={{
-            textAlign: 'center',
-            fontWeight: 'bold',
-            color: '#333',
-            mb: 4
-          }}>
+          <Typography variant="h4"
+            sx={{ textAlign: 'center', fontWeight: 'bold', color: '#333', mb: 4 }}>
             {formatTime(recordingTime)}
           </Typography>
           <Box sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '20px',
-            px: '0px',
-            width: '100%'
+            display: 'flex', justifyContent: 'center', alignItems: 'center',
+            gap: '20px', px: '0px', width: '100%'
           }}>
             <IconButton
               onClick={handleRestartRecording}
               sx={{
-                width: 60,
-                height: 60,
-                backgroundColor: 'white',
-                border: '2px solid #ddd',
-                flexShrink: 0,
-                '&:hover': {
-                  backgroundColor: '#f5f5f5'
-                }
-              }}
-            >
+                width: 60, height: 60, backgroundColor: 'white',
+                border: '2px solid #ddd', flexShrink: 0,
+                '&:hover': { backgroundColor: '#f5f5f5' }
+              }}>
               <Refresh sx={{ fontSize: 30, color: '#333' }} />
             </IconButton>
             <Button
               variant="contained"
               onClick={handleStopRecording}
               sx={{
-                backgroundColor: '#D1052E',
-                color: 'white',
-                px: 4,
-                py: 2,
-                borderRadius: '50px',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                minWidth: '240px',
-                '&:hover': {
-                  backgroundColor: '#555'
-                }
-              }}
-            >
+                backgroundColor: '#D1052E', color: 'white', px: 4, py: 2,
+                borderRadius: '50px', fontSize: '16px', fontWeight: 'bold',
+                minWidth: '240px', '&:hover': { backgroundColor: '#555' }
+              }}>
               저장
             </Button>
           </Box>
           <Box sx={{
-            position: 'absolute',
-            bottom: 10,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '60px',
-            height: '4px',
-            backgroundColor: '#ddd',
-            borderRadius: '2px'
+            position: 'absolute', bottom: 10, left: '50%',
+            transform: 'translateX(-50%)', width: '60px', height: '4px',
+            backgroundColor: '#ddd', borderRadius: '2px'
           }} />
         </Box>
       </Modal>
-
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMoreClose}
         PaperProps={{
-          sx: {
-            minWidth: 105,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
-          }
+          sx: { minWidth: 105, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }
         }}
       >
         <MenuItem
