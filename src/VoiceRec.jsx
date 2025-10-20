@@ -9,11 +9,13 @@ import { CSSTransition } from 'react-transition-group';
 import backIcon from './back.svg';
 import { api } from './lib/api';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'https://ewha-des-api.nivecodes.com';
+
 export default function VoiceRec() {
   const [scrolled, setScrolled] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [recordings, setRecordings] = useState([]);
+  const [recordings, setRecordings] = useState([]); // will contain both server and local recordings
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [showRecordingModal, setShowRecordingModal] = useState(false);
@@ -29,6 +31,7 @@ export default function VoiceRec() {
   const [selectedRecordingId, setSelectedRecordingId] = useState(null);
   const [recordingCounter, setRecordingCounter] = useState(1);
   const [uploadError, setUploadError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   // finalChunks: 녹음 데이터 임시 저장 (useRef 사용해 렌더링 간 유지)
@@ -88,6 +91,160 @@ export default function VoiceRec() {
       if (animationFrame) cancelAnimationFrame(animationFrame);
     };
   }, [isRecording, analyser]);
+
+  // -----------------------
+  // Helper: parse server date robustly
+  // -----------------------
+  const parseServerDate = (obj) => {
+    if (!obj) return null;
+    // possible fields from backend
+    const candidates = [
+      obj.createdAt, obj.created_at, obj.createDate, obj.create_date,
+      obj.regDate, obj.reg_date, obj.date, obj.created
+    ];
+    for (const c of candidates) {
+      if (c !== undefined && c !== null && c !== '') {
+        // if numeric (timestamp)
+        if (typeof c === 'number' || /^\d+$/.test(String(c))) {
+          const ts = Number(c);
+          // if seconds, convert to ms (heuristic: if ts < 1e12 assume seconds)
+          const ms = ts < 1e12 ? ts * 1000 : ts;
+          const d = new Date(ms);
+          if (!isNaN(d)) return d.toLocaleString();
+        }
+        // if ISO string or parseable
+        const parsed = Date.parse(String(c));
+        if (!isNaN(parsed)) {
+          return new Date(parsed).toLocaleString();
+        }
+        // otherwise return raw string
+        return String(c);
+      }
+    }
+    // fallback null
+    return null;
+  };
+
+  // Normalize file URL from backend metadata to a browser-accessible absolute URL
+  const normalizeFileUrl = (r) => {
+    if (!r) return null;
+    // backend may provide fileAccessUrl or filePath (which may be an absolute server path)
+    let url = r.fileAccessUrl || r.filePath || null;
+    if (!url) return null;
+
+    // If already an absolute URL, tidy duplicate slashes and return it
+    try {
+      const parsed = new URL(url);
+      return url.replace(/([^:]\/)\/+/g, '$1');
+    } catch (e) {
+      // not absolute — fall through to normalization
+    }
+
+    // If the backend returned a server filesystem path that contains a web-accessible segment
+    // (e.g. '/home/ubuntu/java/uploads/record/...') try to extract '/record/...' or '/uploads/...'
+    const recordIdx = url.indexOf('/record/');
+    if (recordIdx !== -1) {
+      const pathFromRecord = url.slice(recordIdx); // '/record/1/...'
+      return `${API_BASE}${pathFromRecord}`.replace(/([^:]\/)\/+/g, '$1');
+    }
+    const uploadsIdx = url.indexOf('/uploads/');
+    if (uploadsIdx !== -1) {
+      const pathFromUploads = url.slice(uploadsIdx); // '/uploads/...'
+      return `${API_BASE}${pathFromUploads}`.replace(/([^:]\/)\/+/g, '$1');
+    }
+
+    // Try to find '/record/...' anywhere in the path (handles odd server-filepath shapes)
+    const innerRecord = url.match(/\/(record\/.+)$/);
+    if (innerRecord && innerRecord[1]) {
+      return `${API_BASE}/${innerRecord[1]}`.replace(/([^:]\/)\/+/g, '$1');
+    }
+
+    // Fallback: attach to API_BASE, ensure single slash
+    return `${API_BASE}${url.startsWith('/') ? url : ('/' + url)}`.replace(/([^:]\/)\/+/g, '$1');
+  };
+
+  // Load server recordings on mount
+  useEffect(() => {
+    loadRecords();
+    // cleanup audio when component unmounts
+    return () => {
+      if (currentAudio) {
+        try {
+          currentAudio.pause();
+          currentAudio.src = '';
+        } catch (_) {}
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load records from server and ensure each server item has a playable URL.
+  // If listRecords returns metadata without fileAccessUrl, we call getRecord for that id as a fallback.
+  const loadRecords = async () => {
+    setUploadError('');
+    setIsLoading(true);
+    try {
+      const data = await api.listRecords({ programId: getProgramId() });
+      console.log('api.listRecords response (raw):', data);
+      // normalize different possible response shapes: array or {list:[]} etc.
+      let list = [];
+      if (Array.isArray(data)) list = data;
+      else if (data && Array.isArray(data.list)) list = data.list;
+      else if (data && Array.isArray(data.data)) list = data.data;
+      else list = [];
+
+      if (list.length > 0) {
+        try { console.log('first record detail:', JSON.stringify(list[0], null, 2)); } catch (e) { console.log('first record detail (non-serializable):', list[0]); }
+      }
+
+      const serverRecs = await Promise.all(list.map(async (r0) => {
+        let r = { ...r0 }; // work on copy
+        let audioUrl = normalizeFileUrl(r);
+        if (!audioUrl) {
+          try {
+            const single = await api.getRecord(r.id);
+            if (single) {
+              r = { ...r, ...single };
+              audioUrl = normalizeFileUrl(single || {});
+            }
+          } catch (err) {
+            console.warn(`getRecord(${r.id}) failed:`, err);
+          }
+        }
+
+        const dateDisplay = parseServerDate(r) || (r.diaryDate || r.date || '');
+
+        return {
+          id: r.id,
+          server: true,
+          number: r.id,
+          duration: r.fileSize ? Math.round(r.fileSize / 1000) : (r.duration || 0),
+          date: dateDisplay,
+          audioUrl,
+          originFileName: r.originFileName || r.fileName || '',
+          mimeType: r.mimeType || 'audio/wav',
+          meta: r,
+        };
+      }));
+
+      console.debug('mapped serverRecs', serverRecs);
+
+      setRecordings(prev => {
+        const local = prev.filter(p => !p.server);
+        return [...serverRecs, ...local];
+      });
+    } catch (e) {
+      console.error('loadRecords error', e);
+      const msg = (e && e.message) ? e.message : '';
+      if (msg.includes('401') || msg.includes('JWT_UNDEFINED')) {
+        setUploadError('인증 오류: 다시 로그인해 주세요.');
+      } else {
+        setUploadError('녹음 목록을 불러오지 못했습니다.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -234,25 +391,77 @@ export default function VoiceRec() {
         }
         const audioUrl = URL.createObjectURL(wavBlob);
         const wavFile = new File([wavBlob], 'voice.wav', { type: 'audio/wav' });
+
+        // --- NEW: create a temporary local item BEFORE upload so we have a stable placeholder to replace ---
+        const tempId = `temp-${Date.now()}`;
+        const tempLocal = {
+          id: tempId,
+          server: false,
+          number: recordingCounter,
+          duration: recordingTime,
+          date: new Date().toLocaleString(),
+          audioUrl,
+          blob: wavFile,
+          mimeType: 'audio/wav',
+          _isTemp: true
+        };
+        setRecordings(prev => [tempLocal, ...prev]);
+        setRecordingCounter(prev => prev + 1);
+
         try {
-          await api.uploadRecord(getProgramId(), wavFile);
+          const uploadResp = await api.uploadRecord(getProgramId(), wavFile);
+          console.log('uploadResp:', uploadResp);
+
+          // Try to extract an id from uploadResp and fetch server record for authoritative metadata (date, filePath, etc.)
+          const uploadedId =
+            uploadResp && (
+              uploadResp.id ||
+              (uploadResp.data && (uploadResp.data.id || uploadResp.data.recordId)) ||
+              uploadResp.recordId ||
+              (uploadResp.record && uploadResp.record.id)
+            );
+
+          if (uploadedId) {
+            try {
+              const single = await api.getRecord(uploadedId);
+              console.log('getRecord after upload:', single);
+              const audioUrlFromServer = normalizeFileUrl(single || {});
+              // Build server record object (use parseServerDate)
+              const dateDisplay = parseServerDate(single) || new Date().toLocaleString();
+              const newServerRec = {
+                id: single.id || uploadedId,
+                server: true,
+                number: single.id || uploadedId,
+                duration: single.fileSize ? Math.round(single.fileSize / 1000) : Math.round(wavBlob.size / 1000),
+                date: dateDisplay,
+                audioUrl: audioUrlFromServer,
+                originFileName: single.originFileName || single.fileName || 'voice.wav',
+                mimeType: single.mimeType || 'audio/wav',
+                meta: single
+              };
+
+              // Replace the temporary local item with the authoritative server item
+              setRecordings(prev => prev.map(r => (r.id === tempId ? newServerRec : r)));
+            } catch (err) {
+              console.warn('getRecord after upload failed', err);
+              // fallback: reload full list and remove temp item
+              await loadRecords();
+              setRecordings(prev => prev.filter(r => r.id !== tempId));
+            }
+          } else {
+            // server didn't return an id -> reload list to get authoritative data, remove temp
+            await loadRecords();
+            setRecordings(prev => prev.filter(r => r.id !== tempId));
+          }
+
           alert('녹음 파일(wav)이 서버에 저장되었습니다!');
         } catch (e) {
           setUploadError('녹음 파일 서버 저장 실패: ' + (e.message || ''));
           alert('녹음 파일 서버 저장 실패: ' + (e.message || ''));
+          // remove temp if upload failed
+          setRecordings(prev => prev.filter(r => r.id !== tempId));
           return;
         }
-        const newRecording = {
-          id: Date.now(),
-          number: recordingCounter,
-          duration: recordingTime,
-          date: new Date().toLocaleString(),
-          audioUrl: audioUrl,
-          blob: wavFile,
-          mimeType: 'audio/wav'
-        };
-        setRecordings(prev => [...prev, newRecording]);
-        setRecordingCounter(prev => prev + 1);
       };
 
       setMediaRecorder(recorder);
@@ -296,12 +505,25 @@ export default function VoiceRec() {
     finalChunksRef.current = [];
   };
 
-  const handlePlayRecording = (recording) => {
+  const safeStopCurrentAudio = () => {
+    if (currentAudio) {
+      try {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio.src = '';
+      } catch (_) {}
+      setCurrentAudio(null);
+      setPlayingId(null);
+      setIsPaused(false);
+    }
+  };
+
+  // Play: if server file likely needs auth, fetch with Authorization+credentials and play blob.
+  const handlePlayRecording = async (recording) => {
     if (playingId === recording.id && currentAudio) {
       if (currentAudio.paused) {
         currentAudio.play().catch(err => {
-          setPlayingId(null);
-          setCurrentAudio(null);
+          safeStopCurrentAudio();
           alert('재생에 실패했습니다. 다시 시도해주세요.');
         });
       } else {
@@ -309,49 +531,65 @@ export default function VoiceRec() {
       }
       return;
     }
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-      setCurrentAudio(null);
-      setPlayingId(null);
-      setIsPaused(false);
-    }
+
+    safeStopCurrentAudio();
+
     try {
-      const audio = new Audio();
-      audio.addEventListener('canplay', () => {
-        audio.play().catch(err => {
-          setPlayingId(null);
-          setCurrentAudio(null);
-          alert('재생에 실패했습니다. 다시 시도해주세요.');
-        });
-      });
-      audio.addEventListener('play', () => {
+      let src = recording.audioUrl;
+      if (!src && recording.server) {
+        try {
+          const rec = await api.getRecord(recording.id);
+          if (rec) {
+            src = normalizeFileUrl(rec);
+          }
+        } catch (err) {
+          console.error('getRecord error', err);
+        }
+      }
+      if (!src) throw new Error('오디오 URL이 없습니다.');
+
+      // fetch with possible auth and play blob
+      const token = localStorage.getItem('accessToken');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(src, { headers, credentials: 'include' });
+      if (!res.ok) throw new Error(`파일을 가져오지 못했습니다: ${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const audio = new Audio(objectUrl);
+      audio.preload = 'auto';
+
+      const onPlay = () => {
         setPlayingId(recording.id);
         setCurrentAudio(audio);
         setIsPaused(false);
-      });
-      audio.addEventListener('pause', () => {
-        setIsPaused(true);
-      });
-      audio.addEventListener('ended', () => {
+      };
+      const onPause = () => setIsPaused(true);
+      const onEnded = () => {
         setPlayingId(null);
         setCurrentAudio(null);
         setIsPaused(false);
-      });
-      audio.addEventListener('error', () => {
-        setPlayingId(null);
-        setCurrentAudio(null);
+        URL.revokeObjectURL(objectUrl);
+      };
+      const onError = () => {
+        safeStopCurrentAudio();
+        URL.revokeObjectURL(objectUrl);
         alert('오디오 오류 발생');
+      };
+
+      audio.addEventListener('play', onPlay);
+      audio.addEventListener('pause', onPause);
+      audio.addEventListener('ended', onEnded);
+      audio.addEventListener('error', onError);
+
+      await audio.play().catch(err => {
+        setCurrentAudio(audio);
+        setPlayingId(recording.id);
+        setIsPaused(false);
+        console.warn('audio.play() failed', err);
       });
-      if (recording.audioUrl) {
-        audio.src = recording.audioUrl;
-        audio.load();
-      } else {
-        throw new Error('오디오 URL이 없습니다.');
-      }
     } catch (error) {
-      setPlayingId(null);
-      setCurrentAudio(null);
+      console.error('play error', error);
+      safeStopCurrentAudio();
       alert('오디오 재생 준비 중 오류가 발생했습니다.');
     }
   };
@@ -368,30 +606,72 @@ export default function VoiceRec() {
 
   const handleDownload = async (recording) => {
     try {
-      const url = URL.createObjectURL(recording.blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `녹음${recording.number}.wav`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      if (recording.server && recording.audioUrl) {
+        const token = localStorage.getItem('accessToken');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch(recording.audioUrl, { headers, credentials: 'include' });
+        if (!res.ok) throw new Error(`파일 다운로드 실패: ${res.status}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = recording.originFileName || `record_${recording.id}.wav`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        handleMoreClose();
+        return;
+      }
+      if (recording.blob) {
+        const url = URL.createObjectURL(recording.blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `녹음${recording.number}.wav`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        handleMoreClose();
+        return;
+      }
+      alert('다운로드 가능한 파일이 없습니다.');
       handleMoreClose();
     } catch (error) {
+      console.error('download error', error);
       alert('다운로드에 실패했습니다.');
       handleMoreClose();
     }
   };
 
-  const handleDelete = (recordingId) => {
-    if (window.confirm('이 녹음을 삭제하시겠습니까?')) {
-      setRecordings(prev => prev.filter(recording => recording.id !== recordingId));
-      if (playingId === recordingId && currentAudio) {
-        currentAudio.pause();
-        setCurrentAudio(null);
-        setPlayingId(null);
-      }
+  // Delete: if server recording, call API; otherwise remove local
+  const handleDelete = async (recordingId) => {
+    if (!window.confirm('이 녹음을 삭제하시겠습니까?')) {
       handleMoreClose();
+      return;
+    }
+
+    handleMoreClose();
+
+    const rec = recordings.find(r => r.id === recordingId);
+    if (!rec) return;
+
+    if (rec.server) {
+      try {
+        setIsLoading(true);
+        // api.deleteRecord should exist on api.js
+        await api.deleteRecord(recordingId);
+        setRecordings(prev => prev.filter(r => r.id !== recordingId));
+        alert('서버 녹음이 삭제되었습니다.');
+      } catch (err) {
+        console.error('deleteRecord error', err);
+        alert('삭제에 실패했습니다: ' + (err.message || ''));
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      setRecordings(prev => prev.filter(r => r.id !== recordingId));
+      alert('로컬 녹음이 삭제되었습니다.');
     }
   };
 
@@ -460,7 +740,12 @@ export default function VoiceRec() {
                 {uploadError}
               </Typography>
             )}
-            {recordings.length === 0 ? (
+
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
+                <Typography>녹음 목록을 불러오는 중입니다...</Typography>
+              </Box>
+            ) : recordings.length === 0 ? (
               <Box sx={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                 justifyContent: 'center', minHeight: '60vh'
@@ -487,7 +772,8 @@ export default function VoiceRec() {
               <Box sx={{ width: '100%', overflowX: 'hidden' }}>
                 {recordings.map((recording) => (
                   <Box key={recording.id} sx={{
-                    mb: 2, p: 3, backgroundColor: '#eef1f3ff', borderRadius: 5,
+                    mb: 2, p: 3, backgroundColor: recording.server ? '#eef1f3ff' : '#fff7ed',
+                    borderRadius: 5,
                     display: 'flex', alignItems: 'center', gap: 2,
                     width: '100%', maxWidth: '100%', overflowX: 'hidden'
                   }}>
@@ -508,13 +794,14 @@ export default function VoiceRec() {
                         fontWeight: 'bold', mb: 0.5, overflow: 'hidden',
                         textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                       }}>
-                        녹음 {recording.number}
+                        {recording.server ? (recording.originFileName || `녹음 ${recording.number}`) : `녹음 ${recording.number}`}
                       </Typography>
                       <Typography variant="body2" sx={{
                         color: '#666', fontSize: '12px', overflow: 'hidden',
                         textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                       }}>
                         {recording.date} • {Math.floor(recording.duration / 60)}:{(recording.duration % 60).toString().padStart(2, '0')}
+                        {recording.server ? ' • 서버' : ' • 로컬'}
                       </Typography>
                     </Box>
                     <IconButton onClick={(e) => handleMoreClick(e, recording.id)}
