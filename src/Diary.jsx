@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Container, Typography, Box, AppBar, Toolbar, IconButton, TextField, Button
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { CSSTransition } from 'react-transition-group';
 import backIcon from './back.svg';
 import { api } from './lib/api';
@@ -14,7 +14,9 @@ export default function Diary() {
   const [diaryText, setDiaryText] = useState('');
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { id } = useParams(); // optional diary id for edit
 
   const backgroundOptions = [
     { name: '기본', color: '#ffffff' },
@@ -40,6 +42,33 @@ export default function Diary() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    // if id present, load diary for editing
+    if (!id) return;
+    let cancelled = false;
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        const data = await api.getDiary(id);
+        // data expected to contain diaryContent, diaryDate, diaryTitle, colorCode (if backend supports)
+        if (cancelled) return;
+        if (data) {
+          if (data.diaryContent !== undefined) setDiaryText(data.diaryContent);
+          else if (data.content !== undefined) setDiaryText(data.content); // fallback field name
+          if (data.colorCode) setBackgroundColor(data.colorCode);
+          // optionally set diaryDate/title if you expose those fields in UI
+        }
+      } catch (e) {
+        console.error('Failed to load diary', e);
+        setError('일기 불러오기 실패');
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [id]);
+
   const handleBackClick = () => {
     setIsExiting(true);
     setTimeout(() => {
@@ -57,48 +86,71 @@ export default function Diary() {
       return;
     }
 
-   // 날짜 형식 고침
-   const date = new Date();
-   const diaryDate = `${date.getFullYear()}.${(date.getMonth()+1).toString().padStart(2,'0')}.${date.getDate().toString().padStart(2,'0')}`;
-   const diaryTitle = '';
-   const diaryContent = diaryText.trim();
-   const programId = getProgramId();
+    // 날짜 형식 고침
+    const date = new Date();
+    const diaryDate = `${date.getFullYear()}.${(date.getMonth()+1).toString().padStart(2,'0')}.${date.getDate().toString().padStart(2,'0')}`;
+    const diaryTitle = '';
+    const diaryContent = diaryText.trim();
+    const programId = getProgramId();
+    const colorCode = backgroundColor;
 
     const token = localStorage.getItem('accessToken');
 
-    if (token) {
+    if (token && id) {
+      // logged in and editing existing diary
       try {
-        // backgroundColor를 저장하고 싶으면 API에도 컬럼이 필요함
+        await api.updateDiary(id, {
+          programId,
+          diaryDate,
+          diaryTitle,
+          diaryContent,
+          colorCode,
+        });
+        alert('일기가 수정되었습니다!');
+        navigate('/diary-list');
+      } catch (e) {
+        console.error(e);
+        setError('수정 실패: ' + (e.message || ''));
+      }
+      return;
+    }
+
+    if (token && !id) {
+      // logged in and creating new diary
+      try {
         await api.createDiary({
           programId,
           diaryDate,
           diaryTitle,
           diaryContent,
-          // backgroundColor, // ← API가 지원하면 추가
+          colorCode,
         });
         alert('일기가 저장되었습니다!');
         navigate('/diary-list');
       } catch (e) {
+        console.error(e);
         setError('저장 실패: ' + (e.message || ''));
       }
-    } else {
-      // 토큰이 없으면 localStorage에 임시 저장
-      try {
-        const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
-        const tempDiary = {
-          id: Date.now(),
-          programId,
-          diaryDate,
-          diaryTitle,
-          diaryContent,
-          backgroundColor,
-        };
-        localStorage.setItem('diaries', JSON.stringify([tempDiary, ...savedDiaries]));
-        alert('로그인 없이 임시로 일기가 저장되었습니다!');
-        navigate('/diary-list');
-      } catch (e) {
-        setError('임시 저장 실패: ' + (e.message || ''));
-      }
+      return;
+    }
+
+    // Not logged in: local temporary save (includes color)
+    try {
+      const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
+      const tempDiary = {
+        id: Date.now(),
+        programId,
+        diaryDate,
+        diaryTitle,
+        diaryContent,
+        backgroundColor: colorCode,
+      };
+      localStorage.setItem('diaries', JSON.stringify([tempDiary, ...savedDiaries]));
+      alert('로그인 없이 임시로 일기가 저장되었습니다!');
+      navigate('/diary-list');
+    } catch (e) {
+      console.error(e);
+      setError('임시 저장 실패: ' + (e.message || ''));
     }
   };
 
@@ -160,7 +212,7 @@ export default function Diary() {
                     fontSize: '18px'
                   }}
                 >
-                  일기 쓰기
+                  {id ? '일기 수정' : '일기 쓰기'}
                 </Typography>
               </Box>
               

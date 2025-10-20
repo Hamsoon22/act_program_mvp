@@ -15,7 +15,7 @@ export default function DiaryView() {
   const diaryContentRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // 샘플 일기 데이터
   const sampleDiary = {
     id: 'sample',
@@ -41,16 +41,26 @@ export default function DiaryView() {
     backgroundColor: '#FFF8E7',
     isSample: true
   };
-  
+
+  // diary data comes from navigation state (diary object) or fallback to sample
   const diary = location.state?.diary || sampleDiary;
 
+  // local backgroundColor state so we can prioritize backend field names like colorCode or backgroundColor
+  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+
   useEffect(() => {
-    // 컴포넌트 마운트 후 즉시 애니메이션 시작
+    // set initial visibility animation
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 100);
+
+    // set background color from diary data (support colorCode or backgroundColor)
+    const colorFromData = diary?.colorCode ?? diary?.backgroundColor ?? sampleDiary.backgroundColor ?? '#ffffff';
+    setBackgroundColor(colorFromData);
+
     return () => clearTimeout(timer);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -81,15 +91,15 @@ export default function DiaryView() {
     navigate('/diary-edit', { state: { diary } });
   };
 
-    const handleDelete = () => {
+  const handleDelete = () => {
     handleMenuClose();
-    
+
     if (window.confirm('정말로 이 일기를 삭제하시겠습니까?')) {
       // localStorage에서 일기 삭제
       const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
       const updatedDiaries = savedDiaries.filter(d => d.id !== diary.id);
       localStorage.setItem('diaries', JSON.stringify(updatedDiaries));
-      
+
       // 일기 목록으로 돌아가기
       navigate('/diary-list', { replace: true });
     }
@@ -98,25 +108,25 @@ export default function DiaryView() {
   // 일기를 이미지로 저장하는 함수 (Canvas API 사용)
   const handleSaveAsImage = async () => {
     if (!diaryContentRef.current) return;
-    
+
     try {
       const element = diaryContentRef.current;
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      
+
       // 캔버스 크기 설정 (스크롤 높이 포함)
       const scale = 2; // 고화질을 위해 2배 스케일
       const elementWidth = 400; // 고정 너비
       const padding = 40; // 좌우 패딩
-      
+
       // 텍스트 내용과 크기 계산
       ctx.font = '18px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
       const lines = diary.content.split('\n');
       const lineHeight = 32;
-      
+
       // 전체 높이 계산
       let totalHeight = 120; // 상단 여백 + 날짜 + 제목
-      
+
       lines.forEach(line => {
         if (line.trim() === '') {
           totalHeight += lineHeight / 2;
@@ -125,11 +135,11 @@ export default function DiaryView() {
           const words = line.split(' ');
           let currentLine = '';
           let lineCount = 0;
-          
+
           words.forEach(word => {
             const testLine = currentLine + word + ' ';
             const metrics = ctx.measureText(testLine);
-            
+
             if (metrics.width > elementWidth - padding && currentLine !== '') {
               lineCount++;
               currentLine = word + ' ';
@@ -137,45 +147,45 @@ export default function DiaryView() {
               currentLine = testLine;
             }
           });
-          
+
           if (currentLine.trim() !== '') {
             lineCount++;
           }
-          
+
           totalHeight += lineCount * lineHeight;
         }
       });
-      
+
       totalHeight += 60; // 하단 여백
-      
+
       // 캔버스 크기 설정
       canvas.width = elementWidth * scale;
       canvas.height = totalHeight * scale;
       ctx.scale(scale, scale);
-      
-      // 배경색 설정
-      ctx.fillStyle = diary.backgroundColor || '#ffffff';
+
+      // 배경색 설정 (use backgroundColor state)
+      ctx.fillStyle = backgroundColor || '#ffffff';
       ctx.fillRect(0, 0, elementWidth, totalHeight);
-      
+
       let yPosition = 40;
-      
+
       // 날짜 그리기
       ctx.fillStyle = '#666';
       ctx.font = '14px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
       ctx.fillText(`${diary.date} ${diary.time || ''}`, 20, yPosition);
       yPosition += 40;
-      
+
       // 제목 그리기
       ctx.fillStyle = '#333';
       ctx.font = 'bold 22px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
       const titleText = diary.title + (diary.isSample ? ' (샘플)' : '');
       ctx.fillText(titleText, 20, yPosition);
       yPosition += 50;
-      
+
       // 내용 그리기 (줄바꿈 처리)
       ctx.fillStyle = '#333';
       ctx.font = '18px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
-      
+
       lines.forEach(line => {
         if (line.trim() === '') {
           yPosition += lineHeight / 2;
@@ -183,11 +193,11 @@ export default function DiaryView() {
           // 긴 줄 자동 줄바꿈
           const words = line.split(' ');
           let currentLine = '';
-          
+
           words.forEach(word => {
             const testLine = currentLine + word + ' ';
             const metrics = ctx.measureText(testLine);
-            
+
             if (metrics.width > elementWidth - padding && currentLine !== '') {
               ctx.fillText(currentLine, 20, yPosition);
               currentLine = word + ' ';
@@ -196,20 +206,20 @@ export default function DiaryView() {
               currentLine = testLine;
             }
           });
-          
+
           if (currentLine.trim() !== '') {
             ctx.fillText(currentLine, 20, yPosition);
             yPosition += lineHeight;
           }
         }
       });
-      
+
       // 이미지 다운로드
       const link = document.createElement('a');
       link.download = `${diary.title || '일기'}_${diary.date || new Date().toLocaleDateString().replace(/\//g, '-')}.png`;
       link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
-      
+
     } catch (error) {
       console.error('이미지 저장 중 오류:', error);
       alert('이미지 저장 중 오류가 발생했습니다.');
@@ -231,17 +241,17 @@ export default function DiaryView() {
         <Box
           sx={{
             minHeight: '100vh',
-            backgroundColor: diary.backgroundColor,
+            backgroundColor: backgroundColor,
             position: 'relative',
             transform: isVisible && !isExiting ? 'translateX(0)' : 'translateX(100%)',
             transition: 'transform 0.3s ease-in-out',
           }}
         >
           {/* 앱바 */}
-          <AppBar 
-            position="sticky" 
+          <AppBar
+            position="sticky"
             elevation={0}
-            sx={{ 
+            sx={{
               backgroundColor: 'transparent',
               backdropFilter: 'none',
               borderBottom: 'none',
@@ -252,30 +262,30 @@ export default function DiaryView() {
             <Toolbar sx={{ display: 'flex', alignItems: 'center', px: 0 }}>
               {/* 왼쪽 백버튼 */}
               <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-start' }}>
-                <IconButton 
+                <IconButton
                   onClick={handleBackClick}
-                  sx={{ 
+                  sx={{
                     color: '#1B1F27',
                     p: 2
                   }}
                 >
-                  <img 
-                    src={backIcon} 
-                    alt="뒤로가기" 
-                    style={{ 
-                      width: '46px', 
-                      height: '46px' 
-                    }} 
+                  <img
+                    src={backIcon}
+                    alt="뒤로가기"
+                    style={{
+                      width: '46px',
+                      height: '46px'
+                    }}
                   />
                 </IconButton>
               </Box>
-              
+
               {/* 중앙 제목 */}
               <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    color: '#1B1F27', 
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: '#1B1F27',
                     fontWeight: 'bold',
                     fontSize: '18px'
                   }}
@@ -283,7 +293,7 @@ export default function DiaryView() {
                   일기 보기
                 </Typography>
               </Box>
-              
+
               {/* 오른쪽 메뉴 버튼 - 샘플이 아닐 때만 표시 */}
               <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-end', pr: 2 }}>
                 {!diary.isSample && (
@@ -301,15 +311,15 @@ export default function DiaryView() {
             </Toolbar>
           </AppBar>
 
-          <Container ref={diaryContentRef} maxWidth="sm" sx={{ 
-            py: 2, 
+          <Container ref={diaryContentRef} maxWidth="sm" sx={{
+            py: 2,
             px: 3,
-            backgroundColor: diary.backgroundColor || '#ffffff',
+            backgroundColor: backgroundColor || '#ffffff',
             minHeight: 'calc(100vh - 120px)',
             borderRadius: '0 0 20px 20px'
           }}>
             {/* 일기 날짜 */}
-            <Typography variant="body2" sx={{ 
+            <Typography variant="body2" sx={{
               color: '#666',
               mb: 2,
               fontSize: '14px',
@@ -319,7 +329,7 @@ export default function DiaryView() {
             </Typography>
 
             {/* 일기 제목 */}
-            <Typography variant="h5" sx={{ 
+            <Typography variant="h5" sx={{
               color: '#333',
               fontWeight: 'bold',
               mb: 3,
@@ -328,11 +338,11 @@ export default function DiaryView() {
             }}>
               {diary.title}
               {diary.isSample && (
-                <Typography component="span" sx={{ 
-                  color: '#999', 
-                  fontSize: '16px', 
+                <Typography component="span" sx={{
+                  color: '#999',
+                  fontSize: '16px',
                   fontWeight: 'normal',
-                  ml: 1 
+                  ml: 1
                 }}>
                   (샘플)
                 </Typography>
@@ -340,7 +350,7 @@ export default function DiaryView() {
             </Typography>
 
             {/* 일기 내용 */}
-            <Typography variant="body1" sx={{ 
+            <Typography variant="body1" sx={{
               color: '#333',
               lineHeight: 1.8,
               fontSize: '18px',
@@ -355,7 +365,7 @@ export default function DiaryView() {
       </CSSTransition>
 
       {/* 하단 고정 이미지 저장 버튼 */}
-      <Box sx={{ 
+      <Box sx={{
         position: 'fixed',
         bottom: 0,
         left: 0,
@@ -365,8 +375,8 @@ export default function DiaryView() {
         px: 3,
         zIndex: 1000
       }}>
-        <Box sx={{ 
-          display: 'flex', 
+        <Box sx={{
+          display: 'flex',
           justifyContent: 'center',
           maxWidth: 'sm',
           mx: 'auto'
