@@ -397,7 +397,7 @@ export default function MBIResultPage() {
         <Button
           variant="contained"
           size="large"
-          onClick={() => navigate('/', { replace: true })}
+          onClick={() => navigate('/mbi-survey', { replace: true })}
           sx={{ 
             width: '48%',
             height: '3.625rem',

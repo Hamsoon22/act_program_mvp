@@ -41,6 +41,11 @@ export default function RuminationSurvey() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // 페이지 진입 시 스크롤을 최상단으로 이동
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     // 컴포넌트 마운트 후 즉시 애니메이션 시작
     const timer = setTimeout(() => {
       setIsVisible(true);

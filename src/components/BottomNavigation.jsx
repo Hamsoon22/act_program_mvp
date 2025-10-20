@@ -51,7 +51,7 @@ const BottomNavigation = ({ activeTab, onTabChange, onOpenMenu, onOpenProfile, s
           bottom: 0px !important;
           left: 0px !important;
           right: 0px !important;
-          height: 95px !important;
+          height: 85px !important;
           width: 100vw !important;
           z-index: 9999 !important;
           transform: translateZ(0) !important;
@@ -68,7 +68,7 @@ const BottomNavigation = ({ activeTab, onTabChange, onOpenMenu, onOpenProfile, s
           bottom: 0px !important;
           left: 0px !important;
           right: 0px !important;
-          height: 95px !important;
+          height: 85px !important;
           width: 100% !important;
           overflow: hidden !important;
           -webkit-transform: translateZ(0) !important;
@@ -79,11 +79,11 @@ const BottomNavigation = ({ activeTab, onTabChange, onOpenMenu, onOpenProfile, s
           transform: translateZ(0) !important;
         }
         body:has(.bottom-nav-container) {
-          padding-bottom: 95px !important;
+          padding-bottom: 85px !important;
         }
         @media screen and (max-height: 500px) {
           .bottom-nav-container {
-            height: 95px !important;
+            height: 85px !important;
             bottom: 0px !important;
           }
         }
@@ -91,7 +91,7 @@ const BottomNavigation = ({ activeTab, onTabChange, onOpenMenu, onOpenProfile, s
           .bottom-nav-container {
             position: fixed !important;
             bottom: 0px !important;
-            height: 95px !important;
+            height: 85px !important;
           }
         }
       `}</style>
@@ -103,7 +103,7 @@ const BottomNavigation = ({ activeTab, onTabChange, onOpenMenu, onOpenProfile, s
           bottom: '0px !important',
           left: '0px !important',
           right: '0px !important',
-          height: '95px !important',
+          height: '85px !important',
           width: '100vw !important',
           overflowX: 'hidden !important',
           overflowY: 'hidden !important',
@@ -118,7 +118,7 @@ const BottomNavigation = ({ activeTab, onTabChange, onOpenMenu, onOpenProfile, s
         }}
       >
         {/* 플로팅 고객센터 버튼 */}
-        <div style={{ position: 'absolute', bottom: '96px', right: '16px', zIndex: 10000 }}>
+        <div style={{ position: 'absolute', bottom: '90px', right: '16px', zIndex: 10000 }}>
           <button 
             onClick={() => window.open('https://forms.gle/Fwi6A7NQMg7N9DvM7', '_blank')}
             className="w-12 h-12 bg-blue-500 bg-opacity-90 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-100 transition-all"
@@ -132,7 +132,7 @@ const BottomNavigation = ({ activeTab, onTabChange, onOpenMenu, onOpenProfile, s
         <div 
           className="bottom-nav-inner bg-white border-t border-gray-200" 
           style={{ 
-            height: '95px !important', 
+            height: '85px !important', 
             overflowX: 'hidden !important',
             overflowY: 'hidden !important',
             position: 'absolute !important',

@@ -799,6 +799,11 @@ function AppHome() {
           title: "Mindfulness 영상보기",
           subtitle: "마인드풀니스 영상",
           videoUrl: "https://www.youtube.com/embed/3nwwKbM_vJc",
+          additionalLinks: [
+            { label: "미역 명상 영상", url: "https://youtu.be/cEK8aaGrHTc" },
+            { label: "invention no1 영상", url: "https://youtu.be/sxtmdFXyzw4" },
+            { label: "invention no2 영상", url: "https://youtu.be/Bdml7ZLPqks" }
+          ],
           description: `A. Erik Satie - Gymnopédie No.1 (연주: 피아니스트 문선영)
 
 먼저 호흡에 집중해 보면서, 숨이 내 몸에 들어가고 나가는 느낌을 느껴 봅니다.

@@ -384,7 +384,7 @@ export default function ResultPage() {
         <Button
           variant="contained"
           size="large"
-          onClick={() => navigate('/', { replace: true })}
+          onClick={() => navigate('/survey', { replace: true })}
           sx={{ 
             width: '48%',
             height: '3.625rem',
