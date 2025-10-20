@@ -29,18 +29,15 @@ export default function DiaryEdit() {
     { name: '복숭아', color: '#FFF0F0' },
   ];
 
-  // helper: program id (fallback)
-  const getProgramId = () => 1;
-
   // 기존 일기 정보 세팅
   useEffect(() => {
     setTimeout(() => setIsVisible(true), 100);
 
-    // DiaryList에서 넘긴 경우 (우선순위로 colorCode 필드 사용)
+    // DiaryList에서 넘긴 경우
     const diary = location.state?.diary;
     if (diary) {
       setDiaryText(diary.diaryContent || diary.content || '');
-      setBackgroundColor(diary.colorCode || diary.backgroundColor || '#ffffff');
+      setBackgroundColor(diary.backgroundColor || '#ffffff');
       setDiaryId(diary.id);
       setDiaryDate(diary.diaryDate || diary.date || '');
       return;
@@ -49,11 +46,10 @@ export default function DiaryEdit() {
     // 새로고침 등으로 직접 진입한 경우
     if (paramId) {
       api.getDiary(paramId).then((data) => {
-        // backend may return colorCode or backgroundColor; support both
-        setDiaryText(data?.diaryContent ?? data?.content ?? '');
-        setBackgroundColor(data?.colorCode ?? data?.backgroundColor ?? '#ffffff');
-        setDiaryId(data?.id ?? paramId);
-        setDiaryDate(data?.diaryDate ?? '');
+        setDiaryText(data.diaryContent || '');
+        setBackgroundColor(data.backgroundColor || '#ffffff');
+        setDiaryId(data.id);
+        setDiaryDate(data.diaryDate || '');
       }).catch(() => navigate('/diary-list'));
     }
   }, [location.state, paramId, navigate]);
@@ -81,41 +77,17 @@ export default function DiaryEdit() {
       return;
     }
 
-    const programId = getProgramId();
-    // keep existing date if available, otherwise create today's date
-    const date = diaryDate || (() => {
-      const d = new Date();
-      return `${d.getFullYear()}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getDate().toString().padStart(2,'0')}`;
-    })();
-
-    const diaryContent = diaryText.trim();
-    const colorCode = backgroundColor;
-
     try {
-      if (diaryId) {
-        await api.updateDiary(diaryId, {
-          programId,
-          diaryDate: date,
-          diaryTitle: '',
-          diaryContent,
-          colorCode,
-        });
-        alert('일기가 수정되었습니다!');
-      } else {
-        // If for some reason there's no id, create a new diary
-        await api.createDiary({
-          programId,
-          diaryDate: date,
-          diaryTitle: '',
-          diaryContent,
-          colorCode,
-        });
-        alert('일기가 저장되었습니다!');
-      }
+      await api.updateDiary(diaryId, {
+        diaryDate, // 기존 날짜 그대로 사용
+        diaryTitle: '', // 필요 없으면 빈값
+        diaryContent: diaryText.trim(),
+        // backgroundColor, // 컬럼 있으면 추가!
+      });
+      alert('일기가 수정되었습니다!');
       navigate('/diary-list');
     } catch (e) {
-      console.error(e);
-      setError('저장 실패: ' + (e.message || ''));
+      setError('수정 실패: ' + (e.message || ''));
     }
   };
 

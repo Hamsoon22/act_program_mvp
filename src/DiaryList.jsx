@@ -15,11 +15,6 @@ export default function DiaryList() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // helper: pick a color from any possible server/local field names
-  const normalizeColor = (d) => {
-    return d?.colorCode ?? d?.backgroundColor ?? d?.color ?? '#ffffff';
-  };
-
   // 애니메이션 시작
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -34,24 +29,16 @@ export default function DiaryList() {
     if (token) {
       // 서버에서 일기 목록 불러오기
       api.listDiaries().then((data) => {
-        console.log('listDiaries raw:', data);
-        const diariesFromServer = (Array.isArray(data) ? data : []).map(diary => {
-          const bg = normalizeColor(diary);
-          return {
-            id: diary.id,
-            title: diary.diaryTitle || '',
-            content: diary.diaryContent || '',
-            date: diary.diaryDate || '',
-            time: diary.diaryTime || '',
-            // normalized for UI
-            backgroundColor: bg,
-            // preserve original server colorCode if any (useful when updating)
-            colorCode: diary.colorCode ?? null,
-            isSample: false,
-            raw: diary
-          };
-        });
-        console.log('mapped diariesFromServer:', diariesFromServer);
+        // 서버 데이터 구조에 맞게 변환
+        const diariesFromServer = (Array.isArray(data) ? data : []).map(diary => ({
+          id: diary.id,
+          title: diary.diaryTitle || '',
+          content: diary.diaryContent || '',
+          date: diary.diaryDate || '',
+          time: '', // 필요시 서버에서 제공받으면 넣기
+          backgroundColor: diary.backgroundColor || '#ffffff', // 컬럼 있으면
+          isSample: false
+        }));
         setDiaries(diariesFromServer);
       }).catch((e) => {
         setError('목록 불러오기 실패: ' + (e.message || ''));
@@ -60,27 +47,38 @@ export default function DiaryList() {
     } else {
       // 로그인 안한 경우 localStorage에서
       const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
-      // normalize saved local diaries so backgroundColor always exists
-      const normalizedLocal = savedDiaries.map(d => ({
-        ...d,
-        backgroundColor: normalizeColor(d),
-        colorCode: d.colorCode ?? d.backgroundColor ?? null
-      }));
       // 샘플 일기 추가
       const sampleDiary = {
         id: 'sample',
         title: '샘플 일기',
-        content: `오늘은 정말 좋은 하루였다. ...`,
+        content: `오늘은 정말 좋은 하루였다. 아침에 일어나서 창밖을 보니 햇살이 너무 따뜻했다.
+
+점심에는 친구들과 함께 맛있는 음식을 먹었고, 오후에는 공원을 산책했다. 저녁에는 가족들과 함께 영화를 보며 즐거운 시간을 보냈다.
+
+내일도 이런 좋은 하루가 되었으면 좋겠다.
+
+오늘 하루를 돌아보면서 느낀 것은, 작은 일상의 소중함이다. 평범해 보이는 순간들이 모여서 행복한 하루를 만든다는 것을 깨달았다.
+
+아침에 마신 따뜻한 커피 한 잔, 길에서 만난 고양이의 귀여운 모습, 친구와 나눈 즐거운 대화, 가족과 함께 보낸 편안한 시간 등 모든 것이 소중한 추억이 되었다.
+
+이런 일상의 소중함을 잊지 않고 살아가야겠다고 다짐했다. 매일매일이 특별한 의미를 가질 수 있도록 더욱 감사하는 마음으로 살아가야겠다.
+
+내일은 또 어떤 새로운 일들이 기다리고 있을까? 기대가 된다.
+
+오늘도 감사한 하루였다. 이런 평범하지만 소중한 일상이 계속되었으면 좋겠다.
+
+끝으로, 이 일기를 읽는 미래의 나에게 하고 싶은 말은, 항상 지금의 감사한 마음을 잊지 말라는 것이다. 어떤 어려움이 와도 이런 작은 행복들을 기억하며 힘내길 바란다.`,
         date: '2024년 1월 1일',
         time: '오후 6:30',
         backgroundColor: '#FFF8E7',
-        colorCode: '#FFF8E7',
         isSample: true
       };
-      const hasSample = normalizedLocal.some(diary => diary.isSample);
-      const finalList = hasSample ? normalizedLocal : [sampleDiary, ...normalizedLocal];
-      console.log('local diaries normalized:', finalList);
-      setDiaries(finalList);
+      const hasample = savedDiaries.some(diary => diary.isSample);
+      if (!hasample) {
+        setDiaries([sampleDiary, ...savedDiaries]);
+      } else {
+        setDiaries(savedDiaries);
+      }
     }
   }, []);
 
@@ -101,13 +99,7 @@ export default function DiaryList() {
   };
 
   const handleDiaryClick = (diary) => {
-    // ensure the object passed to view has backgroundColor and colorCode
-    const payload = {
-      ...diary,
-      backgroundColor: diary.backgroundColor ?? diary.colorCode ?? '#ffffff',
-      colorCode: diary.colorCode ?? diary.backgroundColor ?? null
-    };
-    navigate('/diary-view', { state: { diary: payload } });
+    navigate('/diary-view', { state: { diary } });
   };
 
   const handleNewDiary = () => {
@@ -136,10 +128,10 @@ export default function DiaryList() {
           }}
         >
           {/* 앱바 */}
-          <AppBar
-            position="sticky"
+          <AppBar 
+            position="sticky" 
             elevation={0}
-            sx={{
+            sx={{ 
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               backdropFilter: 'blur(10px)',
               borderBottom: scrolled ? '1px solid rgba(0,0,0,0.1)' : 'none',
@@ -149,30 +141,32 @@ export default function DiaryList() {
             }}
           >
             <Toolbar sx={{ display: 'flex', alignItems: 'center', px: 0 }}>
+              {/* 왼쪽 백버튼 */}
               <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-start' }}>
-                <IconButton
+                <IconButton 
                   onClick={handleBackClick}
-                  sx={{
+                  sx={{ 
                     color: '#1B1F27',
                     p: 2
                   }}
                 >
-                  <img
-                    src={backIcon}
-                    alt="뒤로가기"
-                    style={{
-                      width: '46px',
-                      height: '46px'
-                    }}
+                  <img 
+                    src={backIcon} 
+                    alt="뒤로가기" 
+                    style={{ 
+                      width: '46px', 
+                      height: '46px' 
+                    }} 
                   />
                 </IconButton>
               </Box>
-
+              
+              {/* 중앙 제목 */}
               <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: '#1B1F27',
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: '#1B1F27', 
                     fontWeight: 'bold',
                     fontSize: '18px'
                   }}
@@ -180,7 +174,8 @@ export default function DiaryList() {
                   일기 쓰기
                 </Typography>
               </Box>
-
+              
+              {/* 오른쪽 빈 공간 */}
               <Box sx={{ width: 48 }} />
             </Toolbar>
           </AppBar>
@@ -192,39 +187,42 @@ export default function DiaryList() {
               </Typography>
             )}
             {diaries.length === 0 ? (
-              <Box sx={{
-                display: 'flex',
-                flexDirection: 'column',
+              // 일기가 없을 때 표시
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
                 alignItems: 'center',
                 justifyContent: 'center',
                 minHeight: '60vh'
               }}>
-                <Box sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
                   alignItems: 'center',
                   textAlign: 'center'
                 }}>
-                  <Box sx={{
-                    width: 80,
-                    height: 80,
-                    backgroundColor: '#e0e0e0',
+                  {/* 경고 아이콘 */}
+                  <Box sx={{ 
+                    width: 80, 
+                    height: 80, 
+                    backgroundColor: '#e0e0e0', 
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     mb: 3
                   }}>
-                    <Typography sx={{
-                      fontSize: '48px',
+                    <Typography sx={{ 
+                      fontSize: '48px', 
                       color: '#666',
                       fontWeight: 'bold'
                     }}>
                       !
                     </Typography>
                   </Box>
-
-                  <Typography variant="body1" sx={{
+                  
+                  {/* 메시지 */}
+                  <Typography variant="body1" sx={{ 
                     color: '#999',
                     fontSize: '16px',
                     fontWeight: 'medium'
@@ -234,6 +232,7 @@ export default function DiaryList() {
                 </Box>
               </Box>
             ) : (
+              // 일기 목록 표시
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {diaries.map((diary) => (
                   <Box
@@ -246,6 +245,7 @@ export default function DiaryList() {
                       border: '1px solid rgba(0, 0, 0, 0.05)',
                     }}
                   >
+                    {/* 일기 내용 */}
                     <Box
                       onClick={() => handleDiaryClick(diary)}
                       sx={{
@@ -253,7 +253,7 @@ export default function DiaryList() {
                         mb: 2
                       }}
                     >
-                      <Typography variant="body1" sx={{
+                      <Typography variant="body1" sx={{ 
                         color: '#333',
                         lineHeight: 1.6,
                         fontFamily: '"Apple SD Gothic Neo", "Noto Sans KR", sans-serif',
@@ -263,18 +263,19 @@ export default function DiaryList() {
                       </Typography>
                     </Box>
 
+                    {/* 하단 정보와 버튼들 */}
                     <Box sx={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center'
                     }}>
-                      <Typography variant="caption" sx={{
+                      <Typography variant="caption" sx={{ 
                         color: '#999',
                         fontSize: '14px'
                       }}>
                         {diary.date}
                       </Typography>
-
+                      
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <Button
                           onClick={(e) => {
@@ -297,6 +298,7 @@ export default function DiaryList() {
                             e.stopPropagation();
                             if (window.confirm('정말로 이 일기를 삭제하시겠습니까?')) {
                               if (localStorage.getItem('accessToken')) {
+                                // 서버 삭제 구현 필요 (api.deleteDiary)
                                 api.deleteDiary(diary.id)
                                   .then(() => {
                                     setDiaries((prev) => prev.filter(d => d.id !== diary.id));
@@ -306,6 +308,7 @@ export default function DiaryList() {
                                     alert('삭제 실패: ' + (e.message || ''));
                                   });
                               } else {
+                                // localStorage에서 삭제
                                 const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
                                 const updatedDiaries = savedDiaries.filter(d => d.id !== diary.id);
                                 localStorage.setItem('diaries', JSON.stringify(updatedDiaries));
@@ -334,11 +337,12 @@ export default function DiaryList() {
         </Box>
       </CSSTransition>
 
-      <Box sx={{
-        position: 'fixed !important',
-        bottom: '4%',
-        left: '5%',
-        right: '5%',
+      {/* 하단 고정 CTA 버튼 - 항상 표시 */}
+      <Box sx={{ 
+        position: 'fixed !important', 
+        bottom: '4%', 
+        left: '5%', 
+        right: '5%', 
         display: 'flex',
         justifyContent: 'center',
         p: 0,
@@ -351,7 +355,7 @@ export default function DiaryList() {
           variant="contained"
           size="large"
           onClick={handleNewDiary}
-          sx={{
+          sx={{ 
             width: '100%',
             height: '3.625rem',
             flexShrink: 0,
