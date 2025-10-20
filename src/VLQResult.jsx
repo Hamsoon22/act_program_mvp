@@ -138,7 +138,7 @@ function VLQResult() {
         <Toolbar sx={{ display: 'flex', alignItems: 'center', px: 0 }}>
           <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-start' }}>
             <IconButton
-              onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}
+              onClick={() => navigate("/")}
               sx={{ 
                 color: '#1B1F27',
                 p: 2

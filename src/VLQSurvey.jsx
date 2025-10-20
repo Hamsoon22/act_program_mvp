@@ -25,6 +25,11 @@ export function ValueIntroTitle({ step }) {
   const [isFixed, setIsFixed] = useState(false);
 
   useEffect(() => {
+    // 페이지 진입 시 스크롤을 최상단으로 이동
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     const handleScroll = () => {
       const shouldFix = window.scrollY > 0;
       setIsFixed(shouldFix);
