@@ -16,7 +16,6 @@ export default function Diary() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // 배경색 옵션들
   const backgroundOptions = [
     { name: '기본', color: '#ffffff' },
     { name: '미색', color: '#FFF8E7' },
@@ -27,7 +26,6 @@ export default function Diary() {
   ];
 
   useEffect(() => {
-    // 컴포넌트 마운트 후 즉시 애니메이션 시작
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, 100);
@@ -49,7 +47,7 @@ export default function Diary() {
     }, 300);
   };
 
-  // 프로그램 ID가 없으면 1로 처리
+  // 프로그램 ID 없으면 1로 처리
   const getProgramId = () => 1;
 
   const handleSave = async () => {
@@ -59,20 +57,24 @@ export default function Diary() {
       return;
     }
 
-    const newDiary = {
-      diaryDate: new Date().toLocaleDateString('ko-KR').replace(/\./g, '-'),
-      diaryTitle: '', // 필요시 제목 추가
-      diaryContent: diaryText.trim(),
-      backgroundColor: backgroundColor,
-    };
+   // 날짜 형식 고침
+   const date = new Date();
+   const diaryDate = `${date.getFullYear()}.${(date.getMonth()+1).toString().padStart(2,'0')}.${date.getDate().toString().padStart(2,'0')}`;
+   const diaryTitle = '';
+   const diaryContent = diaryText.trim();
+   const programId = getProgramId();
 
     const token = localStorage.getItem('accessToken');
-    // 토큰이 있으면 API 호출, 없으면 localStorage에 저장
+
     if (token) {
       try {
+        // backgroundColor를 저장하고 싶으면 API에도 컬럼이 필요함
         await api.createDiary({
-          programId: getProgramId(),
-          ...newDiary
+          programId,
+          diaryDate,
+          diaryTitle,
+          diaryContent,
+          // backgroundColor, // ← API가 지원하면 추가
         });
         alert('일기가 저장되었습니다!');
         navigate('/diary-list');
@@ -80,12 +82,16 @@ export default function Diary() {
         setError('저장 실패: ' + (e.message || ''));
       }
     } else {
-      // 토큰이 없으면 localStorage에 임시 저장 (클라이언트 저장)
+      // 토큰이 없으면 localStorage에 임시 저장
       try {
         const savedDiaries = JSON.parse(localStorage.getItem('diaries') || '[]');
         const tempDiary = {
           id: Date.now(),
-          ...newDiary
+          programId,
+          diaryDate,
+          diaryTitle,
+          diaryContent,
+          backgroundColor,
         };
         localStorage.setItem('diaries', JSON.stringify([tempDiary, ...savedDiaries]));
         alert('로그인 없이 임시로 일기가 저장되었습니다!');
@@ -126,7 +132,6 @@ export default function Diary() {
             }}
           >
             <Toolbar sx={{ display: 'flex', alignItems: 'center', px: 0 }}>
-              {/* 왼쪽 백버튼 */}
               <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-start' }}>
                 <IconButton 
                   onClick={handleBackClick}
@@ -146,7 +151,6 @@ export default function Diary() {
                 </IconButton>
               </Box>
               
-              {/* 중앙 제목 */}
               <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
                 <Typography 
                   variant="h6" 
@@ -160,7 +164,6 @@ export default function Diary() {
                 </Typography>
               </Box>
               
-              {/* 오른쪽 저장 버튼 */}
               <Box sx={{ width: 48, display: 'flex', justifyContent: 'flex-end', pr: 2 }}>
                 <Button
                   onClick={handleSave}
