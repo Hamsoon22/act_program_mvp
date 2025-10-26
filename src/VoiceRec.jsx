@@ -385,10 +385,13 @@ export default function VoiceRec() {
           alert('webm → wav 변환 실패: ' + (err.message || err));
           return;
         }
-        if (wavBlob.size > 15 * 1024 * 1024) {
-          alert('파일 크기가 15MB를 초과합니다.');
+
+        // enforce server-specified 5MB limit (change from previous 15MB)
+        if (wavBlob.size > 5 * 1024 * 1024) {
+          alert('파일 크기가 5MB를 초과합니다.');
           return;
         }
+
         const audioUrl = URL.createObjectURL(wavBlob);
         const wavFile = new File([wavBlob], 'voice.wav', { type: 'audio/wav' });
 
@@ -410,18 +413,22 @@ export default function VoiceRec() {
 
         try {
           const uploadResp = await api.uploadRecord(getProgramId(), wavFile);
-          console.log('uploadResp:', uploadResp);
+          console.log('uploadResp raw:', uploadResp);
 
-          // Try to extract an id from uploadResp and fetch server record for authoritative metadata (date, filePath, etc.)
-          const uploadedId =
-            uploadResp && (
-              uploadResp.id ||
-              (uploadResp.data && (uploadResp.data.id || uploadResp.data.recordId)) ||
-              uploadResp.recordId ||
-              (uploadResp.record && uploadResp.record.id)
-            );
+          // Robust extraction of uploadedId: API returns data (number) in many cases
+          let uploadedId = null;
+          if (uploadResp === null || uploadResp === undefined) {
+            uploadedId = null;
+          } else if (typeof uploadResp === 'number' || typeof uploadResp === 'string') {
+            uploadedId = uploadResp;
+          } else if (typeof uploadResp === 'object') {
+            // api.uploadRecord uses unwrap(), but some backends return { data: id } or { id: ... }
+            uploadedId = uploadResp.id ?? uploadResp.data ?? uploadResp.recordId ?? (uploadResp.record && uploadResp.record.id) ?? null;
+          }
 
-          if (uploadedId) {
+          console.log('resolved uploadedId:', uploadedId);
+
+          if (uploadedId !== null && uploadedId !== undefined && uploadedId !== '') {
             try {
               const single = await api.getRecord(uploadedId);
               console.log('getRecord after upload:', single);

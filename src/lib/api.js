@@ -187,12 +187,12 @@ export const api = {
     return request(`/api/user/v1/diary/${id}`, { method: 'DELETE' }).then(unwrap);
   },
 
-  /* Record (녹음) */
+// 수정 제안: uploadRecord (programId를 query param으로 전달)
   uploadRecord(programId, file) {
     const fd = new FormData();
-    fd.append('programId', programId);
     fd.append('file', file);
-    return request('/api/user/v1/record/upload', {
+    const q = programId !== undefined && programId !== null ? `?programId=${encodeURIComponent(programId)}` : '';
+    return request(`/api/user/v1/record/upload${q}`, {
       method: 'POST',
       body: fd,
     }).then(unwrap);
