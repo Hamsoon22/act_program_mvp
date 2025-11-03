@@ -88,7 +88,12 @@ async function request(path, opts = {}) {
     console.error(`API ${res.status} ${path} -> ${msg}`);
     if (res.status === 401) {
       localStorage.removeItem('accessToken');
-      try { if (typeof window !== 'undefined') window.location.href = '/login'; } catch (_) {}
+      try {
+               if (typeof window !== 'undefined') {
+                 const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, ''); // '/act_program_mvp'
+                 window.location.assign(`${base}/login`);
+               }
+             } catch (_) {}
     }
     throw new Error(`API ${res.status} ${msg}`);
   }
