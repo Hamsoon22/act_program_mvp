@@ -1,18 +1,29 @@
-// 전체 파일은 기존과 동일하나 아래에 deleteRecord 함수를 추가했습니다.
-// (생략 없이 전체 파일을 붙여야 한다면 알려주세요; 아래는 수정된 전체 파일 내용입니다)
+// src/lib/api.js
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://ewha-des-api.nivecodes.com';
+
+/** 401을 상위(App) 라우터로 위임하기 위한 에러 타입 */
+export class UnauthorizedError extends Error {
+  constructor(message = 'Unauthorized') {
+    super(message);
+    this.name = 'UnauthorizedError';
+  }
+}
 
 /** 공통 fetch 래퍼 */
 async function request(path, opts = {}) {
   const alreadyRetried = Boolean(opts._retry);
   const token = localStorage.getItem('accessToken');
-  const defaultHeaders = opts.body instanceof FormData ? {} : { 'Content-Type': 'application/json' };
+
+  const defaultHeaders =
+    opts.body instanceof FormData ? {} : { 'Content-Type': 'application/json' };
+
   const headers = {
     ...defaultHeaders,
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(opts.headers || {}),
   };
+
   const fetchOpts = {
     credentials: opts.credentials ?? 'include',
     ...opts,
@@ -21,11 +32,12 @@ async function request(path, opts = {}) {
 
   let res = await fetch(`${API_URL}${path}`, fetchOpts);
 
+  // 401 최초 응답 시 refresh 토큰으로 재시도
   if (res.status === 401 && !alreadyRetried) {
     console.warn('API returned 401 for', path);
-    try { const text = await res.text().catch(() => ''); console.warn('401 response body:', text); } catch (_) {}
 
     const tryRefresh = async () => {
+      // 1) 쿠키 기반 refresh
       try {
         const r1 = await fetch(`${API_URL}/api/open/v1/auth/refresh`, {
           method: 'POST',
@@ -39,8 +51,11 @@ async function request(path, opts = {}) {
             return true;
           }
         }
-      } catch (e) { console.warn('cookie refresh failed', e); }
+      } catch (e) {
+        console.warn('cookie refresh failed', e);
+      }
 
+      // 2) body 전송 기반 refresh
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
@@ -62,7 +77,10 @@ async function request(path, opts = {}) {
             console.warn('refresh (body) failed:', r2.status, t);
           }
         }
-      } catch (e) { console.warn('body refresh failed', e); }
+      } catch (e) {
+        console.warn('body refresh failed', e);
+      }
+
       return false;
     };
 
@@ -83,32 +101,42 @@ async function request(path, opts = {}) {
     }
   }
 
+  // 최종 실패 처리
   if (!res.ok) {
-    const msg = await res.text().catch(() => res.statusText);
+    // 바디를 이미 읽었을 수 있으므로 안전하게 생성
+    let msg = res.statusText;
+    try {
+      msg = (await res.text()) || res.statusText;
+    } catch (_) {}
+
     console.error(`API ${res.status} ${path} -> ${msg}`);
+
     if (res.status === 401) {
       localStorage.removeItem('accessToken');
       try {
-               if (typeof window !== 'undefined') {
-                 const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, ''); // '/act_program_mvp'
-                 window.location.assign(`${base}/login`);
-               }
-             } catch (_) {}
+        if (typeof window !== 'undefined') {
+          // 상위(App)에서 navigate('/login') 하도록 이벤트만 발행
+          window.dispatchEvent(new CustomEvent('app:unauthorized', { detail: { path } }));
+        }
+      } catch (_) {}
+      throw new UnauthorizedError(msg);
     }
+
     throw new Error(`API ${res.status} ${msg}`);
   }
 
+  // 응답 타입에 따른 파싱
   const ct = (res.headers.get('content-type') || '').toLowerCase();
-  if (ct.includes('application/json')) {
-    return res.json();
-  }
+  if (ct.includes('application/json')) return res.json();
   if (ct.startsWith('audio/') || ct.includes('application/octet-stream') || ct.startsWith('image/')) {
     return res.blob();
   }
   return res.text();
 }
 
-const unwrap = (resp) => (resp && typeof resp === 'object' && 'data' in resp ? resp.data : resp);
+/** 서버 응답에서 data 래퍼 벗기기 */
+const unwrap = (resp) =>
+  resp && typeof resp === 'object' && 'data' in resp ? resp.data : resp;
 
 export const api = {
   /* ---------- Auth ---------- */
@@ -126,6 +154,7 @@ export const api = {
       return data;
     });
   },
+
   adminLogin(loginId, password) {
     return request('/api/open/v1/auth/admin/login', {
       method: 'POST',
@@ -140,6 +169,7 @@ export const api = {
       return data;
     });
   },
+
   refreshToken(refreshToken) {
     return request('/api/open/v1/auth/refresh', {
       method: 'POST',
@@ -147,56 +177,67 @@ export const api = {
       credentials: 'include',
     }).then(unwrap);
   },
+
   getUserProfile() {
     return request('/api/user/v1/mypage').then(unwrap);
   },
+
   updateUserProfile(profileData) {
     return request('/api/user/v1/mypage', {
       method: 'PUT',
       body: JSON.stringify(profileData),
     }).then(unwrap);
   },
+
   changePassword({ oldPassword, newPassword }) {
     const params = new URLSearchParams({ oldPassword, newPassword }).toString();
     return request(`/api/user/v1/mypage/password?${params}`, {
-      method: 'PUT'
-    }).then(unwrap);
-  },
-  changeFirstPassword({ newPassword }) {
-    const params = new URLSearchParams({ newPassword }).toString();
-    return request(`/api/user/v1/mypage/password-first?${params}`, {
-      method: 'PUT'
+      method: 'PUT',
     }).then(unwrap);
   },
 
-  /* Diary (omitted earlier for brevity) */
+  changeFirstPassword({ newPassword }) {
+    const params = new URLSearchParams({ newPassword }).toString();
+    return request(`/api/user/v1/mypage/password-first?${params}`, {
+      method: 'PUT',
+    }).then(unwrap);
+  },
+
+  /* ---------- Diary ---------- */
   listDiaries() {
     return request('/api/user/v1/diary/list/all').then(unwrap);
   },
+
   getDiary(id) {
     return request(`/api/user/v1/diary/${id}`).then(unwrap);
   },
+
   createDiary({ programId, diaryDate, diaryTitle, diaryContent, colorCode }) {
     return request('/api/user/v1/diary', {
       method: 'POST',
       body: JSON.stringify({ programId, diaryDate, diaryTitle, diaryContent, colorCode }),
     }).then(unwrap);
   },
+
   updateDiary(id, { programId, diaryDate, diaryTitle, diaryContent, colorCode }) {
     return request(`/api/user/v1/diary/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ programId, diaryDate, diaryTitle, diaryContent, colorCode }),
     }).then(unwrap);
   },
+
   deleteDiary(id) {
     return request(`/api/user/v1/diary/${id}`, { method: 'DELETE' }).then(unwrap);
   },
 
-// 수정 제안: uploadRecord (programId를 query param으로 전달)
+  /* ---------- Record (voice) ---------- */
   uploadRecord(programId, file) {
     const fd = new FormData();
     fd.append('file', file);
-    const q = programId !== undefined && programId !== null ? `?programId=${encodeURIComponent(programId)}` : '';
+    const q =
+      programId !== undefined && programId !== null
+        ? `?programId=${encodeURIComponent(programId)}`
+        : '';
     return request(`/api/user/v1/record/upload${q}`, {
       method: 'POST',
       body: fd,
@@ -211,11 +252,16 @@ export const api = {
     const qs = params.toString();
     const getPath = `/api/user/v1/record/list${qs ? `?${qs}` : ''}`;
 
+    // 1차: GET
     try {
       console.debug('listRecords: attempting GET', getPath, 'search:', search);
       const getResp = await request(getPath);
       const data = unwrap(getResp);
-      if (Array.isArray(data) ? data.length > 0 : (data && (Array.isArray(data.list) ? data.list.length > 0 : true))) {
+      if (
+        Array.isArray(data)
+          ? data.length > 0
+          : data && (Array.isArray(data.list) ? data.list.length > 0 : true)
+      ) {
         console.debug('listRecords: GET returned data', data);
         return data;
       }
@@ -224,6 +270,7 @@ export const api = {
       console.warn('listRecords: GET failed, will try POST fallback', getErr);
     }
 
+    // 2차: POST
     try {
       console.debug('listRecords: attempting POST /api/user/v1/record/list with body', search);
       const postResp = await request('/api/user/v1/record/list', {
@@ -240,20 +287,32 @@ export const api = {
   },
 
   getRecord(id) {
-    if (id === undefined || id === null) return Promise.reject(new Error('getRecord: id is required'));
+    if (id === undefined || id === null) {
+      return Promise.reject(new Error('getRecord: id is required'));
+    }
     return request(`/api/user/v1/record/${id}`).then(unwrap);
   },
 
-  // <<< 추가된 함수: 녹음 삭제 (서버)
+  // 추가된 함수: 녹음 삭제 (서버)
   deleteRecord(id) {
-    if (id === undefined || id === null) return Promise.reject(new Error('deleteRecord: id is required'));
+    if (id === undefined || id === null) {
+      return Promise.reject(new Error('deleteRecord: id is required'));
+    }
     return request(`/api/user/v1/record/${id}`, { method: 'DELETE' }).then(unwrap);
   },
 
-  /* Admin / Program helpers omitted (unchanged) */
-  listProgramMasters() { return request('/api/admin/v1/program-master/list').then(unwrap); },
-  listProgramWeeks(masterId) { return request(`/api/admin/v1/program-week/program-master/${masterId}/weeks`).then(unwrap); },
-  listPrograms(weekId) { return request(`/api/admin/v1/program/program-week/${weekId}/programs`).then(unwrap); },
+  /* ---------- Admin / Program helpers ---------- */
+  listProgramMasters() {
+    return request('/api/admin/v1/program-master/list').then(unwrap);
+  },
+
+  listProgramWeeks(masterId) {
+    return request(`/api/admin/v1/program-week/program-master/${masterId}/weeks`).then(unwrap);
+  },
+
+  listPrograms(weekId) {
+    return request(`/api/admin/v1/program/program-week/${weekId}/programs`).then(unwrap);
+  },
 
   createProgramWeek({ programMasterId, programWeekName, programWeekDate }) {
     return request('/api/admin/v1/program-week', {
@@ -261,16 +320,19 @@ export const api = {
       body: JSON.stringify({ programMasterId, programWeekName, programWeekDate }),
     }).then(unwrap);
   },
-  getProgramWeek(id) { return request(`/api/admin/v1/program-week/${id}`).then(unwrap); },
+
+  getProgramWeek(id) {
+    return request(`/api/admin/v1/program-week/${id}`).then(unwrap);
+  },
+
   updateProgramWeek(id, { programMasterId, programWeekName, programWeekDate }) {
     return request(`/api/admin/v1/program-week/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ programMasterId, programWeekName, programWeekDate }),
     }).then(unwrap);
   },
+
   deleteProgramWeek(id) {
-    return request(`/api/admin/v1/program-week/${id}`, {
-      method: 'DELETE',
-    }).then(unwrap);
+    return request(`/api/admin/v1/program-week/${id}`, { method: 'DELETE' }).then(unwrap);
   },
 };
