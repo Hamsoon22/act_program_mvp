@@ -1,25 +1,20 @@
 import React, { useState, useEffect } from "react";
 import loginImg from "./login.png";
-import sirenIcon from "./siren.svg";
-import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import FloatingButton from "./components/FloatingButton";
 import { motion } from "framer-motion";
-import { CSSTransition } from 'react-transition-group';
-import HeaderEditable from "./components/HeaderEditable";
 import {
   Calendar as CalendarIcon, User, CheckCircle2, Music2, Mic, Leaf, Pencil, Gift, FileText, Plus,
   Eye, EyeOff, Trash2, LogIn, LogOut, Play, Save, Link as LinkIcon, ArrowRight,
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import ProtectedRoute from "./components/ProtectedRoute";
 import { api } from "./lib/api";
 import { UserProvider } from "./context/UserContext";
-import UserMenuButton from "./components/UserMenuButton";
 import HamburgerMenu from "./components/HamburgerMenu";
 import BottomNavigation from "./components/BottomNavigation";
-import LoginPage from "./LoginPage";
 import MainHub from "./MainHub";
+import LoginPage from "./LoginPage";
 import ProfilePage from "./ProfilePage";
 import RuminationSurvey from "./RuminationSurvey";
 import ResultPage from "./ResultPage";
@@ -34,11 +29,48 @@ import LeafShip from "./LeafShip";
 import VLQSurvey from "./VLQSurvey";
 import VLQResult from "./VLQResult";
 
+// // ===== 로그인 없이 입장 가능한 LoginPage =====
+// function LoginPage() {
+//   const navigate = useNavigate();
+//   return (
+//     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-pink-100">
+//       <div className="mb-8">
+//         <img src={loginImg} alt="login" style={{ width: 140, height: 140 }} />
+//       </div>
+//       <div className="bg-white rounded-xl shadow-md p-8 w-full max-w-xs text-center">
+//         <h2 className="font-bold text-2xl mb-6">로그인</h2>
+//         <button
+//           type="button"
+//           className="w-full rounded-xl px-4 py-2 text-base bg-gray-800 text-white mb-4"
+//           onClick={() => {
+//             localStorage.setItem("role", "client");
+//             navigate("/");
+//           }}
+//         >
+//           로그인 없이 입장
+//         </button>
+//         <div className="mt-2">
+//           <button
+//             type="button"
+//             className="w-full rounded-xl px-3 py-2 border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-800"
+//             onClick={() => {
+//               localStorage.setItem("role", "client");
+//               navigate("/");
+//             }}
+//           >
+//             아이디가 없습니다?
+//           </button>
+//         </div>
+//       </div>
+//       <div className="mt-10 text-gray-400 text-xs">로그인 없이 모든 기능을 이용할 수 있습니다.</div>
+//     </div>
+//   );
+// }
+
 /* ========== UI SHIMS ========== */
 const Button = ({ className = "", variant = "default", ...props }) => (
   <button
-    className={
-      `inline-flex items-center gap-2 rounded-xl px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base shadow-sm transition active:scale-[.99] ` +
+    className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base shadow-sm transition active:scale-[.99] ` +
       (variant === "outline"
         ? "border border-gray-300 bg-white hover:bg-gray-50"
         : variant === "ghost"
@@ -149,21 +181,11 @@ function Toolbar({ clientMode, setClientMode, role, onLogout, openWeekSetup, onO
             </Button>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          {/* UserMenuButton 숨김 처리
-          <UserMenuButton onClick={onOpenMenu} />
-          */}
-        </div>
+        {/* 로그인 관련 UserMenuButton 감춤 처리 */}
+        {/* <UserMenuButton onClick={onOpenMenu} /> */}
       </div>
       {role === "counselor" && (
         <div className="flex items-center gap-2 w-full">
-          {/* <Button
-            variant="outline"
-            onClick={openWeekSetup}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 border-gray-300 justify-center"
-          >
-            주차 설정
-          </Button> */}
           <Button
             variant="outline"
             onClick={() => setShowNewProgramModal(true)}
@@ -210,7 +232,6 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
   useEffect(() => { setDiary(localStorage.getItem(diaryKey) || ""); }, [diaryKey]);
   const hasVideo = Boolean(item.videoUrl);
 
-  // 모달이 열릴 때 body 스크롤 방지
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
@@ -252,13 +273,12 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
     ) : null
   );
 
-  // 종류별 아이콘 배경색 (새로운 HEX 코드)
   const typeBg = {
-    assessment: { backgroundColor: '#C4EBF9' },   // 진단/설문
-    practice:   { backgroundColor: '#E0F6DB' },   // 연습/활동
-    content:    { backgroundColor: '#E1DFFF' },   // 콘텐츠
-    milestone:  { backgroundColor: '#F2CDDE' },   // 마일스톤
-    feature:    { backgroundColor: '#F9E9D5' }    // 앱 기능
+    assessment: { backgroundColor: '#C4EBF9' },
+    practice:   { backgroundColor: '#E0F6DB' },
+    content:    { backgroundColor: '#E1DFFF' },
+    milestone:  { backgroundColor: '#F2CDDE' },
+    feature:    { backgroundColor: '#F9E9D5' }
   };
   return (
     <div className="flex items-start gap-2 sm:gap-3 rounded-xl sm:rounded-2xl border border-gray-200 p-3 sm:p-4">
@@ -281,7 +301,6 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
               <FeatureOpenButton />
             </div>
             <div className="text-xs sm:text-sm text-gray-500">{item.subtitle}</div>
-            {/* 내부 라우팅 버튼으로 navigate 사용 */}
             {item.type === "assessment" && item.link && (
               <Button
                 variant="outline"
@@ -443,7 +462,6 @@ function ProgramItemCard({ item, onChange, onRemove, clientMode, editMode, onEdi
   );
 }
 
-// 아래 WeekEditor, VideoModal, AppHome, App 등은 기존 코드 그대로 두세요!
 // ----- WeekEditor -----
 function WeekEditor({ week, onChange, onRemove, clientMode, role, weekIdx, programMasterId, reloadWeeks }) {
   const [editItemIdx, setEditItemIdx] = useState(null);
@@ -610,12 +628,11 @@ function getYouTubeId(url = "") {
     return null;
   }
 }
-// ----- VideoModal -----
 function VideoModal({ url, onClose, description, additionalLinks, open }) {
   const yt = getYouTubeId(url);
   return (
-    <div className="fixed inset-0 grid place-items-center bg-black/60 p-2 sm:p-4" 
-         style={{ zIndex: 10001, overflowY: 'auto' }} 
+    <div className="fixed inset-0 grid place-items-center bg-black/60 p-2 sm:p-4"
+         style={{ zIndex: 10001, overflowY: 'auto' }}
          onClick={onClose}>
       <div className="w-full max-w-3xl my-auto" onClick={(e) => e.stopPropagation()}>
         <Card>
@@ -638,10 +655,10 @@ function VideoModal({ url, onClose, description, additionalLinks, open }) {
                 <strong>영상 재생을 위해 유튜브로 이동됩니다.</strong>
                 <div className="mt-2 space-y-1">
                   <div>
-                    <a 
-                      className="text-red-600 underline hover:text-red-800" 
-                      href={url} 
-                      target="_blank" 
+                    <a
+                      className="text-red-600 underline hover:text-red-800"
+                      href={url}
+                      target="_blank"
                       rel="noreferrer"
                     >
                       #가이드 영상
@@ -649,10 +666,10 @@ function VideoModal({ url, onClose, description, additionalLinks, open }) {
                   </div>
                   {additionalLinks && additionalLinks.map((link, idx) => (
                     <div key={idx}>
-                      <a 
-                        className="text-red-600 underline hover:text-red-800" 
-                        href={link.url} 
-                        target="_blank" 
+                      <a
+                        className="text-red-600 underline hover:text-red-800"
+                        href={link.url}
+                        target="_blank"
                         rel="noreferrer"
                       >
                         #{link.label}
@@ -662,12 +679,9 @@ function VideoModal({ url, onClose, description, additionalLinks, open }) {
                 </div>
               </div>
             )}
-
-            {/* === 설명 추가 === */}
             {description && (
               <div className="mt-4 text-gray-700 whitespace-pre-line text-base">
                 {description.split('\n').map((line, index) => {
-                  // A., B., 또는 "호흡 명상"으로 시작하는 줄을 볼드 처리
                   if (line.trim().startsWith('A.') || line.trim().startsWith('B.') || line.trim() === '호흡 명상') {
                     return (
                       <div key={index} style={{ fontWeight: 'bold', marginTop: index > 0 ? '1rem' : 0 }}>
@@ -679,7 +693,6 @@ function VideoModal({ url, onClose, description, additionalLinks, open }) {
                 })}
               </div>
             )}
-
             <div className="mt-4 text-right"><Button variant="outline" onClick={onClose}>닫기</Button></div>
           </CardContent>
         </Card>
@@ -688,11 +701,10 @@ function VideoModal({ url, onClose, description, additionalLinks, open }) {
   );
 }
 
-
 // ----- WeekSetup -----
 function WeekSetup({ initialWeeks, onConfirm, onCancel }) {
   const [weeks, setWeeks] = useState(initialWeeks);
-  
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-xl p-6 shadow-xl max-w-sm w-full mx-4">
@@ -723,7 +735,11 @@ function WeekSetup({ initialWeeks, onConfirm, onCancel }) {
 // ----- AppHome -----
 function AppHome() {
   const navigate = useNavigate();
-  const role = localStorage.getItem("role"); // 'counselor' | 'client' | null
+  let role = localStorage.getItem("role"); // 'counselor' | 'client' | null
+  if (!role) {
+    role = "client";
+    localStorage.setItem("role", "client");
+  }
   const programMasterId = 1;
   const [activeTab, setActiveTab] = useState('home');
   const [isExiting, setIsExiting] = useState(false);
@@ -735,21 +751,17 @@ function AppHome() {
     return role === "client";
   });
 
-
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     if (tab === 'mypage') {
-      console.log('App: Starting exit animation to profile');
       setIsExiting(true);
       setTimeout(() => {
-        console.log('App: Navigating to profile');
         navigate('/profile');
       }, 300);
     }
-    // 'home' tab은 이미 홈에 있으므로 아무것도 하지 않음
   };
 
-  // ====== 하드코딩된 weeks 배열 ======
+  // ====== 예제 하드코딩 weeks 배열 ======
   const hardCodedWeeks = [
     {
       weekLabel: "1주차",
@@ -771,14 +783,13 @@ function AppHome() {
           additionalLinks: [
             { label: "실전 영상", url: "https://youtu.be/fgHpHSE1iIM" }
           ],
-           // 설명 추가!
            description: `
-        호흡 명상
-        
-        복식 호흡을 하면서 호흡 명상을 해보도록 하겠습니다. 처음 연습해 보는 것이라면, 왼손을 가슴 위에, 오른손을 배 위에 두고 가슴 보다는 배(오른손)가 움직이도록 하면서 연습해 보는 것이 좋습니다. 호흡 명상을 할 때 중요한 것은 호흡을 천천히 하는 것입니다. 숨을 천천히 하나, 둘, 셋 들이쉬고 잠시 멈추어 있다가(하나, 둘, 셋) 다시 천천히 내쉽니다. 하나, 둘, 셋, 넷, 그리고 잠시 멈춥니다(하나, 둘, 셋). 만약 천천히 내쉬는 것이 어렵다면, 마치 초를 불 때처럼 입을 조그맣게 모아서 입으로 천천히 내쉽니다.
-        
-        이렇게 몇 번 숨을 들이쉬고 내쉬면서 호흡이 내 코와 입을 통해 몸으로 들어가는 느낌, 이 숨을 통해 내 몸이 변화되는 것을 느껴 봅니다. 이 때도 다양한 생각과 느낌이 왔다 갈 수 있습니다. 그러면 감정이나 생각이 왔다 갔다는 것을 알아차리고 다시 부드럽게 호흡으로 돌아옵니다.
-                `,
+호흡 명상
+
+복식 호흡을 하면서 호흡 명상을 해보도록 하겠습니다. 처음 연습해 보는 것이라면, 왼손을 가슴 위에, 오른손을 배 위에 두고 가슴 보다는 배(오른손)가 움직이도록 하면서 연습해 보는 것이 좋습니다. 호흡 명상을 할 때 중요한 것은 호흡을 천천히 하는 것입니다. 숨을 천천히 하나, 둘, 셋 들이쉬고 잠시 멈추어 있다가(하나, 둘, 셋) 다시 천천히 내쉽니다. 하나, 둘, 셋, 넷, 그리고 잠시 멈춥니다(하나, 둘, 셋). 만약 천천히 내쉬는 것이 어렵다면, 마치 초를 불 때처럼 입을 조그맣게 모아서 입으로 천천히 내쉽니다.
+
+이렇게 몇 번 숨을 들이쉬고 내쉬면서 호흡이 내 코와 입을 통해 몸으로 들어가는 느낌, 이 숨을 통해 내 몸이 변화되는 것을 느껴 봅니다. 이 때도 다양한 생각과 느낌이 왔다 갈 수 있습니다. 그러면 감정이나 생각이 왔다 갔다는 것을 알아차리고 다시 부드럽게 호흡으로 돌아옵니다.
+           `,
         }
       ]
     },
@@ -815,8 +826,7 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
 
 두 개의 성부로 되어 있는 피아노 곡을 들으면서 특정 소리에만 주의를 기울이는 연습을 해보겠습니다. 처음에는 주어지는 악보를 보면서 연습해 보아도 좋습니다. 주의를 자꾸만 다른 성부에 빼앗기곤 하겠지만, 연습이 지속되면서 점차로 주의력을 스스로 조절할 수 있는 자신을 발견하게 될 것입니다.
 `,
-},
-          
+        },
         {
           icon: "mic",
           type: "feature",
@@ -856,38 +866,34 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
     {
       weekLabel: "4주차",
       dateTag: null,
- items: [
-  {
-    icon: "gift",
-    type: "milestone",
-    title: "수고하셨습니다 :)",
-    subtitle: "완주!"
-  },
-  {
-    icon: "check",
-    type: "assessment",
-    title: "모바일 웹과 영상 콘텐츠 평가",
-    subtitle: "감사합니다!",
-    link: "https://forms.gle/UguVZPHHPmHE6epY9"
-  }
-]
-      
+      items: [
+        {
+          icon: "gift",
+          type: "milestone",
+          title: "수고하셨습니다 :)",
+          subtitle: "완주!"
+        },
+        {
+          icon: "check",
+          type: "assessment",
+          title: "모바일 웹과 영상 콘텐츠 평가",
+          subtitle: "감사합니다!",
+          link: "https://forms.gle/UguVZPHHPmHE6epY9"
+        }
+      ]
     }
   ];
 
-  // ====== 여기서만 하드코딩(초기값) ======
   const [program, setProgram] = useState(() => ({
     title: "ACT Program",
     dateStart: null, dateEnd: null, coach: "",
     weeks: hardCodedWeeks
   }));
 
-  // 이하 기존 코드 그대로
   const [showWeekSetup, setShowWeekSetup] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const route = useLocation();
-  
 
   useEffect(() => saveLS(program), [program]);
   useEffect(() => {
@@ -949,15 +955,14 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
           }
         `}
       </style>
-      <div 
+      <div
         className={`fade-container ${isExiting ? 'exiting' : ''}`}
-        style={{ 
-          minHeight: '100vh', 
+        style={{
+          minHeight: '100vh',
           backgroundColor: '#f8f9fa',
           paddingBottom: '0px'
         }}
       >
-        {/* 상단 그라데이션+모션 헤더 */}
         <div
           className="animate-gradient-xy"
           style={{
@@ -971,20 +976,20 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
           }}
         >
           <div className="max-w-md mx-auto" style={{position: 'relative'}}>
-            <img 
-              src={loginImg} 
-              alt="login graphic" 
+            <img
+              src={loginImg}
+              alt="login graphic"
               style={{
-                width: 150, 
-                height: 150, 
-                objectFit: 'contain', 
-                position: 'absolute', 
-                right: '0px', 
-                top: '0px', 
-                zIndex: 1, 
+                width: 150,
+                height: 150,
+                objectFit: 'contain',
+                position: 'absolute',
+                right: '0px',
+                top: '0px',
+                zIndex: 1,
                 pointerEvents: 'none',
                 opacity: 0.85
-              }} 
+              }}
             />
             <div className="flex items-center gap-4" style={{minHeight: 120}}>
               <h1 className="text-2xl font-bold text-black mb-4 leading-tight z-10" style={{position: 'relative', zIndex: 2}}>
@@ -993,26 +998,21 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
                 Students
               </h1>
             </div>
-            {/* 날짜 정보 */}
             <div className="bg-white/95 rounded-full px-3 py-1.5 mb-2 flex items-center gap-2" style={{position: 'relative', zIndex: 2}}>
               <CalendarIcon size={16} className="text-gray-600" />
               <span className="text-gray-800 font-medium text-sm">
                 2025.10.21 ~ 2025.11.11
               </span>
             </div>
-            {/* 강사 정보 */}
             <div className="bg-white/95 rounded-full px-3 py-1.5 flex items-center gap-2" style={{position: 'relative', zIndex: 2}}>
               <User size={16} className="text-gray-600" />
               <span className="text-gray-800 font-medium text-sm">김지은 교수님</span>
             </div>
           </div>
         </div>
-
-        {/* 하단 흰색 콘텐츠 영역 */}
         <div className="px-4 py-6 bg-white" style={{ minHeight: '60vh' }}>
           <div className="max-w-md mx-auto">
             <h2 className="text-xl font-bold text-gray-900 mb-6">번아웃 회복 워크샵</h2>
-
           {role === "counselor" && !clientMode && (
             <div className="max-w-md mx-auto mb-6">
               <Toolbar
@@ -1025,13 +1025,11 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
               />
             </div>
           )}
-
           {role === "counselor" && program.weeks.length === 0 && (
             <div className="max-w-md mx-auto rounded-xl border border-dashed border-gray-300 p-6 text-center text-gray-500 bg-gray-50">
               주차가 없습니다. 우측 상단의 <b>주차 설정</b> 버튼을 눌러 1~20주를 생성하세요.
             </div>
           )}
-
           <div className="max-w-md mx-auto space-y-4">
             {program.weeks.map((week, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
@@ -1047,7 +1045,6 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
                 />
               </motion.div>
             ))}
-
             {!clientMode && role === "counselor" && (
               <div className="grid place-items-center py-6">
                 <Button className="px-6 py-3 text-base bg-purple-600 text-white hover:bg-purple-700">
@@ -1056,18 +1053,14 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
               </div>
             )}
           </div>
-          
-          {/* 하단 정보 - 제일 아래로 이동 */}
           <div className="text-center text-gray-500 py-6 mt-6">
             <p className="mb-2">역할: 내담자 • 로컬 저장됨</p>
           </div>
           </div>
         </div>
-
         {showWeekSetup && role === "counselor" && (
           <WeekSetup initialWeeks={Math.max(1, program.weeks.length || 4)} onConfirm={onConfirmWeeks} onCancel={() => setShowWeekSetup(false)} />
         )}
-
         <HamburgerMenu
           open={showMenu}
           onClose={() => setShowMenu(false)}
@@ -1088,35 +1081,34 @@ B. J.S. Bach: Invention No. 1 in C Major, BWV 772a & Invention No. 2 in C Minor,
   );
 }
 
+// 전체 라우팅: ProtectedRoute 없이 모든 페이지 바로 접근
 export default function App() {
+  useEffect(() => {
+    if (!localStorage.getItem("role")) {
+      localStorage.setItem("role", "client");
+    }
+  }, []);
   return (
-    <UserProvider>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <AppHome />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/hub" element={<ProtectedRoute><MainHub /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        <Route path="/survey" element={<ProtectedRoute><RuminationSurvey /></ProtectedRoute>} />
-        <Route path="/result" element={<ProtectedRoute><ResultPage /></ProtectedRoute>} />
-        <Route path="/mbi-survey" element={<ProtectedRoute><MBISurvey /></ProtectedRoute>} />
-        <Route path="/mbi-result" element={<ProtectedRoute><MBIResultPage /></ProtectedRoute>} />
-        <Route path="/vlq-survey" element={<ProtectedRoute><VLQSurvey/></ProtectedRoute>} />
-        <Route path="/vlq-result" element={<ProtectedRoute><VLQResult/></ProtectedRoute>} />
-        <Route path="/voice-rec" element={<ProtectedRoute><VoiceRec /></ProtectedRoute>} />
-        <Route path="/diary" element={<ProtectedRoute><Diary /></ProtectedRoute>} />
-        <Route path="/diary-list" element={<ProtectedRoute><DiaryList /></ProtectedRoute>} />
-        <Route path="/diary-view" element={<ProtectedRoute><DiaryView /></ProtectedRoute>} />
-        <Route path="/diary-edit" element={<ProtectedRoute><DiaryEdit /></ProtectedRoute>} />
-        <Route path="/leaf-ship" element={<ProtectedRoute><LeafShip /></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </UserProvider>
+      <UserProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<AppHome />} />
+          <Route path="/hub" element={<MainHub />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/survey" element={<RuminationSurvey />} />
+          <Route path="/result" element={<ResultPage />} />
+          <Route path="/mbi-survey" element={<MBISurvey />} />
+          <Route path="/mbi-result" element={<MBIResultPage />} />
+          <Route path="/vlq-survey" element={<VLQSurvey/>} />
+          <Route path="/vlq-result" element={<VLQResult/>} />
+          <Route path="/voice-rec" element={<VoiceRec />} />
+          <Route path="/diary" element={<Diary />} />
+          <Route path="/diary-list" element={<DiaryList />} />
+          <Route path="/diary-view" element={<DiaryView />} />
+          <Route path="/diary-edit" element={<DiaryEdit />} />
+          <Route path="/leaf-ship" element={<LeafShip />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </UserProvider>
   );
 }
